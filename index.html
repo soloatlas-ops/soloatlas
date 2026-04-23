@@ -210,7 +210,7 @@ function renderGrid() {
         <span>${s.guitar_type || ''}</span>
         ${s.bpm ? `<span>${s.bpm} BPM</span>` : ''}
         <span style="margin-left:auto">
-          <button class="upvote ${voted.includes(s.id)?'voted':''}" onclick="event.stopPropagation();upvote(${s.id})">▲ ${s.upvotes}</button>
+          <button class="upvote ${voted.includes(s.id)?'voted':''}" data-upvote="${s.id}" onclick="event.stopPropagation();upvote(${s.id})">▲ ${s.upvotes}</button>
         </span>
       </div>
     </div>
@@ -223,8 +223,10 @@ async function upvote(id) {
   localStorage.setItem('voted', JSON.stringify(voted));
   const solo = allSolos.find(s => s.id === id);
   solo.upvotes++;
-  renderGrid();
-  if (currentDetail === id) showDetail(id);
+  document.querySelectorAll(`[data-upvote="${id}"]`).forEach(btn => {
+    btn.classList.add('voted');
+    btn.innerHTML = `▲ ${solo.upvotes}`;
+  });
   await sb.from('solos').update({ upvotes: solo.upvotes }).eq('id', id);
 }
 
@@ -253,7 +255,7 @@ function showDetail(id) {
       <button class="action-btn ${isSaved?'saved':''}" id="save-btn" onclick="toggleSaved(${id})">
         ${isSaved ? '★ Saved' : '☆ Save to wishlist'}
       </button>
-      <button class="upvote ${voted.includes(id)?'voted':''}" onclick="upvote(${id})">▲ ${s.upvotes}</button>
+      <button class="upvote ${voted.includes(id)?'voted':''}" data-upvote="${id}" onclick="upvote(${id})">▲ ${s.upvotes}</button>
     </div>
     <div class="stats">
       <div class="stat"><div class="stat-label">Key</div><div class="stat-val">${s.key||'—'}</div></div>

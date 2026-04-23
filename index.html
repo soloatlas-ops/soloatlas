@@ -101,7 +101,12 @@
 
   <div id="detail-view" style="display:none"></div>
   <div id="guitarists-view" style="display:none"></div>
-  <div id="path-view" style="display:none"></div>
+  <div id="path-view" style="display:none">
+  <div style="font-size:20px;font-weight:600;margin-bottom:4px">Find my path</div>
+  <div style="font-size:13px;color:#666;margin-bottom:20px">Answer a few questions and we'll build your personal learning path</div>
+  <div id="path-questions"></div>
+  <div id="path-results" style="display:none"></div>
+</div>
 </div>
 
 <script>
@@ -393,10 +398,149 @@ function showView(v) {
     document.getElementById(id+'-view').style.display = id === v ? 'block' : 'none';
   });
   if (v === 'list') applyFilters();
+  if (v === 'path') initPath();
   window.scrollTo(0,0);
 }
 
 init();
+  const pathState = { step: 0, level: null, goal: null, genre: null };
+
+function initPath() {
+  pathState.step = 0;
+  pathState.level = null;
+  pathState.goal = null;
+  pathState.genre = null;
+  document.getElementById('path-results').style.display = 'none';
+  renderPathStep();
+}
+
+function renderPathStep() {
+  const q = document.getElementById('path-questions');
+  const steps = [
+    {
+      question: "What's your current level?",
+      subtitle: "Be honest — the path only works if we start in the right place",
+      choices: [
+        { label: "Complete beginner — I can barely hold the thing", value: 1 },
+        { label: "Beginner — I know a few chords and simple riffs", value: 2 },
+        { label: "Intermediate — I can play some solos but struggle with speed", value: 3 },
+        { label: "Advanced — I want to level up specific techniques", value: 4 }
+      ],
+      key: 'level'
+    },
+    {
+      question: "What genre do you love most?",
+      subtitle: "We'll prioritize solos in this style",
+      choices: [...new Set(allSolos.map(s => s.genre).filter(Boolean))].map(g => ({ label: g, value: g })),
+      key: 'genre'
+    },
+    {
+      question: "Do you have a goal solo in mind?",
+      subtitle: "Pick one you really want to nail — we'll build toward it",
+      choices: [
+        ...allSolos.filter(s => s.difficulty_num >= 3).slice(0, 6).map(s => ({ label: `${s.song_title} — ${s.band}`, value: s.id })),
+        { label: "No specific goal — just show me a good path", value: null }
+      ],
+      key: 'goal'
+    }
+  ];
+
+  if (pathState.step >= steps.length) {
+    buildPath();
+    return;
+  }
+
+  const current = steps[pathState.step];
+  q.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:16px;font-weight:500;margin-bottom:4px">${current.question}</div>
+      <div style="font-size:13px;color:#666;margin-bottom:16px">${current.subtitle}</div>
+      <div style="display:grid;gap:8px">
+        ${current.choices.map(c => `
+          <button onclick="pathChoose('${current.key}', ${JSON.stringify(c.value)})"
+            style="text-align:left;padding:12px 16px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer;transition:all .15s"
+            onmouseover="this.style.borderColor='#aaa'" onmouseout="this.style.borderColor='#e5e5e5'">
+            ${c.label}
+          </button>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:12px;color:#ccc">Step ${pathState.step + 1} of ${steps.length}</div>
+  `;
+}
+
+function pathChoose(key, value) {
+  pathState[key] = value;
+  pathState.step++;
+  renderPathStep();
+}
+
+function buildPath() {
+  const q = document.getElementById('path-questions');
+  const results = document.getElementById('path-results');
+  q.innerHTML = '';
+
+  const userLevel = pathState.level || 2;
+  const userGenre = pathState.genre;
+  const goalId = pathState.goal;
+
+  let goalSolo = goalId ? allSolos.find(s => s.id === goalId) : null;
+
+  let candidates = allSolos.filter(s => {
+    if (goalSolo && s.id === goalSolo.id) return false;
+    if (s.difficulty_num > (goalSolo ? goalSolo.difficulty_num : userLevel + 2)) return false;
+    return true;
+  });
+
+  if (userGenre) candidates.sort((a, b) => {
+    const aMatch = a.genre === userGenre ? 0 : 1;
+    const bMatch = b.genre === userGenre ? 0 : 1;
+    return aMatch - bMatch || a.difficulty_num - b.difficulty_num;
+  });
+  else candidates.sort((a, b) => a.difficulty_num - b.difficulty_num);
+
+  const startLevel = Math.max(1, userLevel - 1);
+  const path = [];
+  const used = new Set();
+
+  for (let level = startLevel; level <= (goalSolo ? goalSolo.difficulty_num - 1 : userLevel + 2); level++) {
+    const match = candidates.find(s => s.difficulty_num === level && !used.has(s.id));
+    if (match) { path.push(match); used.add(match.id); }
+  }
+
+  if (path.length === 0) {
+    const fallback = candidates.filter(s => !used.has(s.id)).slice(0, 3);
+    fallback.forEach(s => { path.push(s); used.add(s.id); });
+  }
+
+  if (goalSolo) path.push(goalSolo);
+
+  const genreLabel = userGenre || 'your chosen genre';
+  const levelLabels = ['', 'beginner', 'beginner', 'intermediate', 'advanced'];
+
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div style="background:#f5f5f5;border-radius:12px;padding:20px;margin-bottom:16px">
+      <div style="font-size:13px;color:#666;margin-bottom:12px">
+        Based on your <strong>${levelLabels[userLevel] || 'current'}</strong> level and love of <strong>${genreLabel}</strong>${goalSolo ? `, here's your path to <strong>${goalSolo.song_title}</strong>` : ', here is your recommended learning path'}.
+      </div>
+      <div id="path-steps">
+        ${path.map((s, i) => `
+          <div class="path-step" onclick="showDetail(${s.id})" style="cursor:pointer">
+            <div class="step-num" style="${i === path.length - 1 && goalSolo ? 'background:#eeedfe;border-color:#afa9ec;color:#3c3489' : ''}">${i + 1}</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500">${s.song_title}</div>
+              <div style="font-size:11px;color:#666">${s.guitarist} · ${s.difficulty_label} · ${(s.techniques||'').split(',').slice(0,2).join(', ')}</div>
+            </div>
+            <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="initPath()" style="flex:1;padding:10px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer">Start over</button>
+      <button onclick="showView('list')" style="flex:1;padding:10px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer">Browse all solos</button>
+    </div>
+  `;
+}
 </script>
 </body>
 </html>

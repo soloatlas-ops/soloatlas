@@ -218,13 +218,17 @@ function renderGrid() {
 }
 
 async function upvote(id) {
-  if (voted.includes(id)) return;
-  voted.push(id);
-  localStorage.setItem('voted', JSON.stringify(voted));
   const solo = allSolos.find(s => s.id === id);
-  solo.upvotes++;
+  if (voted.includes(id)) {
+    voted = voted.filter(x => x !== id);
+    solo.upvotes--;
+  } else {
+    voted.push(id);
+    solo.upvotes++;
+  }
+  localStorage.setItem('voted', JSON.stringify(voted));
   document.querySelectorAll(`[data-upvote="${id}"]`).forEach(btn => {
-    btn.classList.add('voted');
+    btn.classList.toggle('voted', voted.includes(id));
     btn.innerHTML = `▲ ${solo.upvotes}`;
   });
   await sb.from('solos').update({ upvotes: solo.upvotes }).eq('id', id);

@@ -520,6 +520,18 @@ function buildPath() {
   }
 
   if (goalSolo) path.push(goalSolo);
+  if (path.length === 0) {
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div style="background:#f5f5f5;border-radius:12px;padding:20px;text-align:center">
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">No path found</div>
+      <div style="font-size:13px;color:#666;margin-bottom:16px">We don't have enough solos in that style yet to build a path. Try a different genre or goal solo.</div>
+      <button onclick="initPath()" style="padding:10px 20px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer">Try again</button>
+    </div>
+  `;
+  q.innerHTML = '';
+  return;
+}
 
   const genreLabel = userGenre || 'your chosen genre';
   const levelLabels = ['', 'beginner', 'beginner', 'intermediate', 'advanced'];

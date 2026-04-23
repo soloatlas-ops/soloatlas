@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoloAtlas — The Guitar Solo Database</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fafafa; color: #1a1a1a; }
+    .nav { border-bottom: 1px solid #e5e5e5; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; background: white; }
+    .nav-logo { font-size: 20px; font-weight: 600; cursor: pointer; }
+    .nav-link { font-size: 14px; color: #666; cursor: pointer; }
+    .nav-link:hover { color: #1a1a1a; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .search { width: 100%; padding: 10px 14px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 14px; margin-bottom: 20px; background: white; }
+    select { width: 100%; padding: 8px 10px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 13px; background: white; color: #1a1a1a; }
+    .tabs { display: flex; gap: 20px; border-bottom: 1px solid #e5e5e5; margin-bottom: 20px; overflow-x: auto; }
+    .tab { font-size: 13px; color: #666; padding: 8px 0; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab.active { color: #1a1a1a; border-bottom: 2px solid #1a1a1a; font-weight: 500; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+    .card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px; cursor: pointer; transition: border-color .15s; }
+    .card:hover { border-color: #aaa; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .card-title { font-size: 15px; font-weight: 500; }
+    .card-sub { font-size: 12px; color: #666; margin-top: 2px; }
+    .card-meta { display: flex; gap: 10px; margin-top: 10px; }
+    .card-meta span { font-size: 12px; color: #666; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .tag-genre { background: #eeedfe; color: #3c3489; }
+    .tag-tech { background: #e1f5ee; color: #085041; }
+    .diff-1, .diff-2 { background: #eaf3de; color: #27500a; }
+    .diff-3 { background: #faeeda; color: #633806; }
+    .diff-4 { background: #faeeda; color: #633806; }
+    .diff-5 { background: #fcebeb; color: #791f1f; }
+    .pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+    .upvote { display: flex; align-items: center; gap: 4px; font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 1px solid #e5e5e5; background: white; color: #666; cursor: pointer; transition: all .15s; }
+    .upvote:hover, .upvote.voted { background: #faeeda; border-color: #ef9f27; color: #633806; }
+    .detail-back { font-size: 13px; color: #666; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; }
+    .detail-back:hover { color: #1a1a1a; }
+    .detail-title { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+    .detail-sub { font-size: 14px; color: #666; margin-bottom: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+    .stat { background: #f5f5f5; border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .stat-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+    .stat-val { font-size: 14px; font-weight: 500; }
+    .section { background: #f5f5f5; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .section-label { font-size: 11px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .link-btn { width: 100%; font-size: 13px; padding: 10px 14px; border-radius: 8px; border: 1px solid #e5e5e5; background: white; color: #1a1a1a; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; text-align: left; }
+    .link-btn:hover { background: #f5f5f5; }
+    .link-btn:last-child { margin-bottom: 0; }
+    .action-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .action-btn { flex: 1; font-size: 13px; padding: 9px 12px; border-radius: 8px; border: 1px solid #e5e5e5; background: white; color: #1a1a1a; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .15s; }
+    .action-btn:hover { background: #f5f5f5; }
+    .action-btn.learned { background: #eaf3de; border-color: #97c459; color: #27500a; }
+    .action-btn.saved { background: #eeedfe; border-color: #afa9ec; color: #3c3489; }
+    .path-step { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #e5e5e5; }
+    .path-step:last-child { border-bottom: none; }
+    .step-num { width: 24px; height: 24px; border-radius: 50%; background: #f5f5f5; border: 1px solid #e5e5e5; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #666; flex-shrink: 0; }
+    .guitarist-card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 14px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .guitarist-card:hover { border-color: #aaa; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #666; flex-shrink: 0; border: 1px solid #e5e5e5; }
+    .empty { text-align: center; padding: 60px 20px; color: #666; font-size: 14px; }
+    .count { font-size: 13px; color: #666; margin-bottom: 16px; }
+    @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } .filters { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo" onclick="showView('list')">SoloAtlas</div>
+  <div style="display:flex;gap:20px">
+    <span class="nav-link" onclick="showView('guitarists')">Guitarists</span>
+    <span class="nav-link" onclick="showView('path')">Find my path</span>
+  </div>
+</nav>
+
+<div class="container">
+  <div id="list-view">
+    <div class="filters">
+      <select id="f-genre" onchange="applyFilters()"><option value="">All genres</option></select>
+      <select id="f-subgenre" onchange="applyFilters()"><option value="">All subgenres</option></select>
+      <select id="f-difficulty" onchange="applyFilters()"><option value="">All difficulties</option><option value="1">Beginner</option><option value="2">Easy</option><option value="3">Intermediate</option><option value="4">Hard</option><option value="5">Expert</option></select>
+      <select id="f-decade" onchange="applyFilters()"><option value="">All decades</option></select>
+      <select id="f-guitar" onchange="applyFilters()"><option value="">Electric / Acoustic</option><option value="Electric">Electric</option><option value="Acoustic">Acoustic</option><option value="Classical">Classical</option></select>
+      <select id="f-tuning" onchange="applyFilters()"><option value="">All tunings</option></select>
+    </div>
+    <input class="search" type="text" placeholder="Search solos, bands, guitarists..." oninput="applyFilters()" id="search">
+    <div class="tabs">
+      <div class="tab active" onclick="setTab(this,'all')">All solos</div>
+      <div class="tab" onclick="setTab(this,'beginner')">Beginner picks</div>
+      <div class="tab" onclick="setTab(this,'loved')">Most loved</div>
+      <div class="tab" onclick="setTab(this,'learned')">My learned</div>
+      <div class="tab" onclick="setTab(this,'wishlist')">My wishlist</div>
+    </div>
+    <div class="count" id="solo-count"></div>
+    <div class="grid" id="solo-grid"></div>
+  </div>
+
+  <div id="detail-view" style="display:none"></div>
+  <div id="guitarists-view" style="display:none"></div>
+  <div id="path-view" style="display:none"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ybmhnhlkebbklexcuqna.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_XWeZFQdSwptrMayhTlhTdw_EyJxIKDK';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allSolos = [];
+let filtered = [];
+let activeTab = 'all';
+let learned = JSON.parse(localStorage.getItem('learned') || '[]');
+let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+let voted = JSON.parse(localStorage.getItem('voted') || '[]');
+
+async function init() {
+  const { data, error } = await sb.from('solos').select('*').order('upvotes', { ascending: false });
+  if (error) { console.error(error); return; }
+  allSolos = data;
+  populateFilters();
+  applyFilters();
+  renderGuitarists();
+}
+
+function populateFilters() {
+  const genres = [...new Set(allSolos.map(s => s.genre).filter(Boolean))].sort();
+  const subgenres = [...new Set(allSolos.map(s => s.subgenre).filter(Boolean))].sort();
+  const decades = [...new Set(allSolos.map(s => s.decade).filter(Boolean))].sort();
+  const tunings = [...new Set(allSolos.map(s => s.tuning).filter(Boolean))].sort();
+  fill('f-genre', genres);
+  fill('f-subgenre', subgenres);
+  fill('f-decade', decades);
+  fill('f-tuning', tunings);
+}
+
+function fill(id, vals) {
+  const el = document.getElementById(id);
+  const first = el.options[0];
+  el.innerHTML = '';
+  el.appendChild(first);
+  vals.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o); });
+}
+
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const genre = document.getElementById('f-genre').value;
+  const subgenre = document.getElementById('f-subgenre').value;
+  const diff = document.getElementById('f-difficulty').value;
+  const decade = document.getElementById('f-decade').value;
+  const guitar = document.getElementById('f-guitar').value;
+  const tuning = document.getElementById('f-tuning').value;
+
+  filtered = allSolos.filter(s => {
+    if (q && !`${s.song_title} ${s.band} ${s.guitarist} ${s.artist}`.toLowerCase().includes(q)) return false;
+    if (genre && s.genre !== genre) return false;
+    if (subgenre && s.subgenre !== subgenre) return false;
+    if (diff && s.difficulty_num !== parseInt(diff)) return false;
+    if (decade && s.decade !== decade) return false;
+    if (guitar && s.guitar_type !== guitar) return false;
+    if (tuning && s.tuning !== tuning) return false;
+    if (activeTab === 'beginner' && s.difficulty_num > 2) return false;
+    if (activeTab === 'learned' && !learned.includes(s.id)) return false;
+    if (activeTab === 'wishlist' && !wishlist.includes(s.id)) return false;
+    return true;
+  });
+
+  if (activeTab === 'loved') filtered.sort((a, b) => b.upvotes - a.upvotes);
+  document.getElementById('solo-count').textContent = `${filtered.length} solo${filtered.length !== 1 ? 's' : ''}`;
+  renderGrid();
+}
+
+function setTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  activeTab = tab;
+  applyFilters();
+}
+
+function diffClass(n) {
+  return `diff-${n}`;
+}
+
+function diffLabel(n) {
+  return ['','Beginner','Easy','Intermediate','Hard','Expert'][n] || '';
+}
+
+function renderGrid() {
+  const grid = document.getElementById('solo-grid');
+  if (!filtered.length) { grid.innerHTML = '<div class="empty">No solos found — try adjusting your filters</div>'; return; }
+  grid.innerHTML = filtered.map(s => `
+    <div class="card" onclick="showDetail(${s.id})">
+      <div class="card-top">
+        <div>
+          <div class="card-title">${s.song_title}</div>
+          <div class="card-sub">${s.band} · ${s.guitarist} · ${s.year}</div>
+        </div>
+        <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+      </div>
+      <div class="tags">
+        ${s.genre ? `<span class="tag tag-genre">${s.genre}</span>` : ''}
+        ${s.subgenre ? `<span class="tag tag-genre" style="opacity:.7">${s.subgenre}</span>` : ''}
+        ${(s.techniques||'').split(',').slice(0,2).map(t => `<span class="tag tag-tech">${t.trim()}</span>`).join('')}
+      </div>
+      <div class="card-meta">
+        <span>${s.key || ''}</span>
+        <span>${s.guitar_type || ''}</span>
+        ${s.bpm ? `<span>${s.bpm} BPM</span>` : ''}
+        <span style="margin-left:auto">
+          <button class="upvote ${voted.includes(s.id)?'voted':''}" onclick="event.stopPropagation();upvote(${s.id})">▲ ${s.upvotes}</button>
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function upvote(id) {
+  if (voted.includes(id)) return;
+  voted.push(id);
+  localStorage.setItem('voted', JSON.stringify(voted));
+  const solo = allSolos.find(s => s.id === id);
+  solo.upvotes++;
+  await sb.from('solos').update({ upvotes: solo.upvotes }).eq('id', id);
+  applyFilters();
+}
+
+function showDetail(id) {
+  const s = allSolos.find(x => x.id === id);
+  if (!s) return;
+  const isLearned = learned.includes(id);
+  const isSaved = wishlist.includes(id);
+  const techs = (s.techniques || '').split(',').map(t => t.trim()).filter(Boolean);
+  const similar = allSolos.filter(x => x.id !== id && x.genre === s.genre).slice(0, 3);
+  const easier = allSolos.filter(x => x.id !== id && x.difficulty_num < s.difficulty_num).sort((a,b) => b.difficulty_num - a.difficulty_num).slice(0, 3);
+
+  document.getElementById('detail-view').innerHTML = `
+    <div class="detail-back" onclick="showView('list')">← Back to solos</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div>
+        <div class="detail-title">${s.song_title}</div>
+        <div class="detail-sub">${s.album} · <span style="cursor:pointer;color:#666;text-decoration:underline" onclick="showGuitarist('${s.guitarist}')">${s.guitarist}</span> · ${s.band} · ${s.year}</div>
+      </div>
+      <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+    </div>
+    <div class="action-row">
+      <button class="action-btn ${isLearned?'learned':''}" id="learn-btn" onclick="toggleLearned(${id})">
+        ${isLearned ? '✓ Learned' : '+ Mark as learned'}
+      </button>
+      <button class="action-btn ${isSaved?'saved':''}" id="save-btn" onclick="toggleSaved(${id})">
+        ${isSaved ? '★ Saved' : '☆ Save to wishlist'}
+      </button>
+      <button class="upvote ${voted.includes(id)?'voted':''}" onclick="upvote(${id})">▲ ${s.upvotes}</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Key</div><div class="stat-val">${s.key||'—'}</div></div>
+      <div class="stat"><div class="stat-label">BPM</div><div class="stat-val">${s.bpm||'—'}</div></div>
+      <div class="stat"><div class="stat-label">Solo starts</div><div class="stat-val">${s.solo_start_time||'—'}</div></div>
+      <div class="stat"><div class="stat-label">Duration</div><div class="stat-val">${s.solo_duration||'—'}</div></div>
+      <div class="stat"><div class="stat-label">Tuning</div><div class="stat-val">${s.tuning||'—'}</div></div>
+      <div class="stat"><div class="stat-label">Capo</div><div class="stat-val">${s.capo||'None'}</div></div>
+      <div class="stat"><div class="stat-label">Guitar</div><div class="stat-val">${s.guitar_type||'—'}</div></div>
+      <div class="stat"><div class="stat-label">Scale</div><div class="stat-val">${s.scale_mode||'—'}</div></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Techniques</div>
+      <div class="tags">${techs.map(t=>`<span class="tag tag-tech">${t}</span>`).join('')}</div>
+    </div>
+    <div class="section">
+      <div class="section-label">Links</div>
+      ${s.url_full_song ? `<button class="link-btn" onclick="window.open('${s.url_full_song}','_blank')">▶ Full song on YouTube ${s.solo_start_time?'· starts at '+s.solo_start_time:''}</button>` : ''}
+      ${s.url_tab ? `<button class="link-btn" onclick="window.open('${s.url_tab}','_blank')">≡ Solo tab on Ultimate Guitar</button>` : ''}
+      ${s.url_instructional ? `<button class="link-btn" onclick="window.open('${s.url_instructional}','_blank')">? Instructional video</button>` : ''}
+    </div>
+    ${easier.length ? `
+    <div class="section">
+      <div class="section-label">This solo too hard? Work up to it</div>
+      ${easier.map((x,i) => `
+        <div class="path-step" onclick="showDetail(${x.id})" style="cursor:pointer">
+          <div class="step-num">${i+1}</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500">${x.song_title}</div><div style="font-size:11px;color:#666">${x.guitarist} · ${x.difficulty_label}</div></div>
+          <span class="pill tag ${diffClass(x.difficulty_num)}">${x.difficulty_label}</span>
+        </div>`).join('')}
+    </div>` : ''}
+    ${similar.length ? `
+    <div class="section">
+      <div class="section-label">Learn next</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${similar.map(x=>`<div style="background:white;border:1px solid #e5e5e5;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer" onclick="showDetail(${x.id})">${x.song_title}</div>`).join('')}
+      </div>
+    </div>` : ''}
+  `;
+  showView('detail');
+}
+
+function toggleLearned(id) {
+  if (learned.includes(id)) learned = learned.filter(x => x !== id);
+  else learned.push(id);
+  localStorage.setItem('learned', JSON.stringify(learned));
+  showDetail(id);
+}
+
+function toggleSaved(id) {
+  if (wishlist.includes(id)) wishlist = wishlist.filter(x => x !== id);
+  else wishlist.push(id);
+  localStorage.setItem('wishlist', JSON.stringify(wishlist));
+  showDetail(id);
+}
+
+function renderGuitarists() {
+  const map = {};
+  allSolos.forEach(s => {
+    if (!s.guitarist) return;
+    if (!map[s.guitarist]) map[s.guitarist] = { name: s.guitarist, band: s.band, count: 0 };
+    map[s.guitarist].count++;
+  });
+  const list = Object.values(map).sort((a,b) => b.count - a.count);
+  document.getElementById('guitarists-view').innerHTML = `
+    <div style="font-size:20px;font-weight:600;margin-bottom:4px">Guitarists</div>
+    <div style="font-size:13px;color:#666;margin-bottom:16px">Browse solos by player</div>
+    <input class="search" type="text" placeholder="Search guitarists..." oninput="filterGuitarists(this.value)" id="guitarist-search">
+    <div id="guitarist-list">
+      ${list.map(g => `
+        <div class="guitarist-card" onclick="showGuitarist('${g.name}')">
+          <div class="avatar">${g.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">${g.name}</div>
+            <div style="font-size:12px;color:#666">${g.band}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:14px;font-weight:500">${g.count}</div>
+            <div style="font-size:11px;color:#666">solos</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+function filterGuitarists(q) {
+  document.querySelectorAll('.guitarist-card').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function showGuitarist(name) {
+  const solos = allSolos.filter(s => s.guitarist === name);
+  const g = solos[0];
+  const avgDiff = (solos.reduce((a,s) => a + s.difficulty_num, 0) / solos.length).toFixed(1);
+  const topTech = (() => {
+    const counts = {};
+    solos.forEach(s => (s.techniques||'').split(',').forEach(t => { t=t.trim(); counts[t]=(counts[t]||0)+1; }));
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+  })();
+  document.getElementById('guitarists-view').innerHTML = `
+    <div class="detail-back" onclick="renderGuitarists();showView('guitarists')">← Back to guitarists</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <div class="avatar" style="width:52px;height:52px;font-size:16px">${name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div>
+        <div style="font-size:20px;font-weight:600">${name}</div>
+        <div style="font-size:13px;color:#666">${g?.band||''}</div>
+      </div>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+      <div class="stat"><div class="stat-label">Solos</div><div class="stat-val">${solos.length}</div></div>
+      <div class="stat"><div class="stat-label">Avg difficulty</div><div class="stat-val">${avgDiff} / 5</div></div>
+      <div class="stat"><div class="stat-label">Top technique</div><div class="stat-val">${topTech}</div></div>
+    </div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px">All solos</div>
+    ${solos.map(s => `
+      <div class="card" style="margin-bottom:8px" onclick="showDetail(${s.id})">
+        <div class="card-top">
+          <div style="font-size:14px;font-weight:500">${s.song_title}</div>
+          <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+        </div>
+        <div style="font-size:12px;color:#666;margin-top:3px">${s.album} · ${s.year} · ${s.key} · ${s.guitar_type}</div>
+      </div>`).join('')}
+  `;
+  showView('guitarists');
+}
+
+function showView(v) {
+  ['list','detail','guitarists','path'].forEach(id => {
+    document.getElementById(id+'-view').style.display = id === v ? 'block' : 'none';
+  });
+  if (v === 'list') applyFilters();
+  window.scrollTo(0,0);
+}
+
+init();
+</script>
+</body>
+</html>

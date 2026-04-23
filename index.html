@@ -416,6 +416,7 @@ function initPath() {
 
 function renderPathStep() {
   const q = document.getElementById('path-questions');
+
   const steps = [
     {
       question: "What's your current level?",
@@ -431,18 +432,46 @@ function renderPathStep() {
     {
       question: "What genre do you love most?",
       subtitle: "We'll prioritize solos in this style",
-      choices: [...new Set(allSolos.map(s => s.genre).filter(Boolean))].map(g => ({ label: g, value: g })),
+      choices: [...new Set(allSolos.map(s => s.genre).filter(Boolean))].sort().map(g => ({ label: g, value: g })),
       key: 'genre'
     },
     {
       question: "Do you have a goal solo in mind?",
       subtitle: "Pick one you really want to nail — we'll build toward it",
       choices: [
-        ...allSolos.filter(s => s.difficulty_num >= 3).slice(0, 6).map(s => ({ label: `${s.song_title} — ${s.band}`, value: s.id })),
+        ...allSolos
+          .filter(s => s.difficulty_num >= 3)
+          .sort((a, b) => b.upvotes - a.upvotes)
+          .slice(0, 6)
+          .map(s => ({ label: `${s.song_title} — ${s.band}`, value: s.id })),
         { label: "No specific goal — just show me a good path", value: null }
       ],
       key: 'goal'
     }
+  ];
+
+  if (pathState.step >= steps.length) {
+    buildPath();
+    return;
+  }
+
+  const current = steps[pathState.step];
+  q.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:16px;font-weight:500;margin-bottom:4px">${current.question}</div>
+      <div style="font-size:13px;color:#666;margin-bottom:16px">${current.subtitle}</div>
+      <div style="display:grid;gap:8px">
+        ${current.choices.map(c => `
+          <button onclick="pathChoose('${current.key}', ${JSON.stringify(c.value)})"
+            style="text-align:left;padding:12px 16px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer;transition:all .15s"
+            onmouseover="this.style.borderColor='#aaa'" onmouseout="this.style.borderColor='#e5e5e5'">
+            ${c.label}
+          </button>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:12px;color:#ccc">Step ${pathState.step + 1} of ${steps.length}</div>
+  `;
+}
   ];
 
   if (pathState.step >= steps.length) {

@@ -431,7 +431,14 @@ function renderPathStep() {
     {
       question: "What genre do you love most?",
       subtitle: "We'll prioritize solos in this style",
-      choices: [...new Set(allSolos.map(s => s.genre).filter(Boolean))].map(g => ({ label: g, value: g })),
+      choices: [
+        { label: "Rock", value: "Rock" },
+        { label: "Blues", value: "Blues" },
+        { label: "Metal", value: "Metal" },
+        { label: "Jazz", value: "Jazz" },
+        { label: "Country", value: "Country" },
+        { label: "Any genre", value: null }
+      ],
       key: 'genre'
     },
     {

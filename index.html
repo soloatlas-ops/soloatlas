@@ -239,7 +239,7 @@ async function upvote(id) {
   await sb.from('solos').update({ upvotes: solo.upvotes }).eq('id', id);
 }
 
-function showDetail(id) {
+async function showDetail(id, pushState = true) {
   const s = allSolos.find(x => x.id === id);
   if (!s) return;
   const isLearned = learned.includes(id);
@@ -312,6 +312,7 @@ function toggleLearned(id) {
   else learned.push(id);
   localStorage.setItem('learned', JSON.stringify(learned));
   currentDetail = id;
+if (pushState) history.pushState({ view: 'detail', id: id }, '', `#detail-${id}`);
   showDetail(id);
 }
 
@@ -399,13 +400,17 @@ function showView(v, pushState = true) {
   });
   if (v === 'list') applyFilters();
   if (v === 'path') initPath();
-  if (pushState) history.pushState({ view: v }, '', `#${v}`);
+if (pushState && v !== 'detail') history.pushState({ view: v }, '', `#${v}`);
   window.scrollTo(0,0);
 }
 
   window.addEventListener('popstate', (e) => {
   const view = e.state?.view || 'list';
-  showView(view, false);
+  if (view === 'detail' && e.state?.id) {
+    showDetail(e.state.id, false);
+  } else {
+    showView(view, false);
+  }
 });
 
 const initialView = location.hash.replace('#','') || 'list';

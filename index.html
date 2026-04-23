@@ -115,7 +115,8 @@ let activeTab = 'all';
 let learned = JSON.parse(localStorage.getItem('learned') || '[]');
 let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
 let voted = JSON.parse(localStorage.getItem('voted') || '[]');
-
+let currentDetail = null;
+  
 async function init() {
   const { data, error } = await sb.from('solos').select('*').order('upvotes', { ascending: false });
   if (error) { console.error(error); return; }
@@ -222,8 +223,9 @@ async function upvote(id) {
   localStorage.setItem('voted', JSON.stringify(voted));
   const solo = allSolos.find(s => s.id === id);
   solo.upvotes++;
+  renderGrid();
+  if (currentDetail === id) showDetail(id);
   await sb.from('solos').update({ upvotes: solo.upvotes }).eq('id', id);
-  applyFilters();
 }
 
 function showDetail(id) {
@@ -298,6 +300,7 @@ function toggleLearned(id) {
   if (learned.includes(id)) learned = learned.filter(x => x !== id);
   else learned.push(id);
   localStorage.setItem('learned', JSON.stringify(learned));
+  currentDetail = id;
   showDetail(id);
 }
 

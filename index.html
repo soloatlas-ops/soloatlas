@@ -393,15 +393,26 @@ function showGuitarist(name) {
   showView('guitarists');
 }
 
-function showView(v) {
+function showView(v, pushState = true) {
   ['list','detail','guitarists','path'].forEach(id => {
     document.getElementById(id+'-view').style.display = id === v ? 'block' : 'none';
   });
   if (v === 'list') applyFilters();
   if (v === 'path') initPath();
+  if (pushState) history.pushState({ view: v }, '', `#${v}`);
   window.scrollTo(0,0);
 }
 
+  window.addEventListener('popstate', (e) => {
+  const view = e.state?.view || 'list';
+  showView(view, false);
+});
+
+const initialView = location.hash.replace('#','') || 'list';
+if (['list','detail','guitarists','path'].includes(initialView)) {
+  showView(initialView, false);
+}
+  
 init();
   const pathState = { step: 0, level: null, goal: null, genre: null };
 

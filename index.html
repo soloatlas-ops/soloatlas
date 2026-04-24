@@ -361,7 +361,6 @@ function pickOpt(o){
   if(st.multi){const arr=answers[st.key]||[];answers[st.key]=arr.includes(o)?arr.filter(x=>x!==o):[...arr,o];}
   else answers[st.key]=o;
   renderOnboarding();
-  document.getElementById('onboard-next-btn').disabled=!answers[st.key]||(st.multi&&!answers[st.key].length);
 }
 
 function nextStep(){

@@ -329,9 +329,9 @@ let allSolos=[], filteredSolos=[], sortCol='song_title', sortDir='asc', visibleC
 let userPrefs=null;
 
 const steps=[
-  {q:"What's your skill level?",sub:'We\'ll tailor your path from here.',opts:['Beginner — I\'m just starting out','Easy — I know a few chords','Intermediate — I can play most things','Hard — I can handle complex solos','Expert — bring on the shredding'],key:'level'},
+  {q:"What's your name?",sub:'We\'ll personalize your path.',opts:null,key:'name',text:true},
+  {q:"What's your skill level?",sub:'We\'ll tailor your recommendations from here.',opts:['Beginner — I\'m just starting out','Easy — I know a few chords','Intermediate — I can play most things','Hard — I can handle complex solos','Expert — bring on the shredding'],key:'level'},
   {q:'What genres do you love?',sub:'Pick all that resonate.',opts:['Rock','Blues','Metal','Jazz','Country','Classical','Funk','Folk'],key:'genres',multi:true},
-  {q:'How long do you practice?',sub:'Per session, roughly.',opts:['15 minutes','30 minutes','1 hour','2+ hours'],key:'practice'},
 ];
 let stepIdx=0, answers={};
 
@@ -341,18 +341,33 @@ function renderOnboarding(){
   const st=steps[stepIdx];
   const sel=answers[st.key]||(st.multi?[]:null);
   const hasAnswer=st.multi?(answers[st.key]&&answers[st.key].length>0):!!answers[st.key];
-  const optsHTML=st.opts.map((o,oi)=>{
-    const isSelected=st.multi?(sel&&sel.includes(o)):(sel===o);
-    return `<button class="onboard-opt ${isSelected?'sel':''}" data-idx="${oi}">${o}</button>`;
-  }).join('');
+  let inputHTML='';
+  if(st.text){
+    inputHTML=`<div class="onboard-opts"><input id="onboard-text-input" type="text" placeholder="Your first name" value="${answers[st.key]||''}" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border2);padding:14px 18px;font-family:'Libre Caslon Text',serif;font-size:16px;border-radius:2px;outline:none" /></div>`;
+  } else {
+    const optsHTML=st.opts.map((o,oi)=>{
+      const isSelected=st.multi?(sel&&sel.includes(o)):(sel===o);
+      return `<button class="onboard-opt ${isSelected?'sel':''}" data-idx="${oi}">${o}</button>`;
+    }).join('');
+    inputHTML=`<div class="onboard-opts" id="onboard-opts">${optsHTML}</div>`;
+  }
   document.getElementById('onboard-step-content').innerHTML=`
     <div class="onboard-q">${st.q}</div>
     <div class="onboard-sub">${st.sub}</div>
-    <div class="onboard-opts" id="onboard-opts">${optsHTML}</div>
+    ${inputHTML}
     <button class="onboard-next" id="onboard-next-btn" ${hasAnswer?'':'disabled'}>${stepIdx<steps.length-1?'Continue →':'Start my path'}</button>`;
-  document.getElementById('onboard-opts').querySelectorAll('button').forEach((btn,oi)=>{
-    btn.addEventListener('click',()=>pickOpt(st.opts[oi]));
-  });
+  if(st.text){
+    const inp=document.getElementById('onboard-text-input');
+    inp.addEventListener('input',()=>{
+      answers[st.key]=inp.value.trim();
+      document.getElementById('onboard-next-btn').disabled=!answers[st.key];
+    });
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&answers[st.key])nextStep();});
+  } else {
+    document.getElementById('onboard-opts').querySelectorAll('button').forEach((btn,oi)=>{
+      btn.addEventListener('click',()=>pickOpt(st.opts[oi]));
+    });
+  }
   document.getElementById('onboard-next-btn').addEventListener('click',nextStep);
 }
 
@@ -366,10 +381,10 @@ function pickOpt(o){
 function nextStep(){
   if(stepIdx<steps.length-1){stepIdx++;renderOnboarding();}
   else{
-    userPrefs={level:answers.level?.split(' — ')[0]||'Intermediate',genres:answers.genres||[],practice:answers.practice||'30 minutes',name:'Marcus'};
+    userPrefs={level:answers.level?.split(' — ')[0]||'Intermediate',genres:answers.genres||[],name:answers.name||'Friend'};
     localStorage.setItem('soloatlas_prefs',JSON.stringify(userPrefs));
     document.getElementById('main-nav').style.display='grid';
-    document.getElementById('nav-avatar').textContent=(userPrefs.name||'M')[0].toUpperCase();
+    document.getElementById('nav-avatar').textContent=(userPrefs.name||'F')[0].toUpperCase();
     document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
     document.getElementById('dashboard-view').classList.add('active');
     window.scrollTo(0,0);

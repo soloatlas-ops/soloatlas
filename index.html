@@ -340,20 +340,20 @@ function renderOnboarding(){
   prog.innerHTML=steps.map((_,i)=>`<div class="onboard-dot ${i<=stepIdx?'done':''}"></div>`).join('');
   const st=steps[stepIdx];
   const sel=answers[st.key]||(st.multi?[]:null);
+  const hasAnswer=st.multi?(answers[st.key]&&answers[st.key].length>0):!!answers[st.key];
   const optsHTML=st.opts.map((o,oi)=>{
-    const isSelected=st.multi?(sel.includes(o)):(sel===o);
+    const isSelected=st.multi?(sel&&sel.includes(o)):(sel===o);
     return `<button class="onboard-opt ${isSelected?'sel':''}" data-idx="${oi}">${o}</button>`;
   }).join('');
   document.getElementById('onboard-step-content').innerHTML=`
     <div class="onboard-q">${st.q}</div>
     <div class="onboard-sub">${st.sub}</div>
     <div class="onboard-opts" id="onboard-opts">${optsHTML}</div>
-    <button class="onboard-next" id="onboard-next-btn" onclick="nextStep()" ${!answers[st.key]?'disabled':''}>
-      ${stepIdx<steps.length-1?'Continue →':'Start my path'}
-    </button>`;
+    <button class="onboard-next" id="onboard-next-btn" ${hasAnswer?'':'disabled'}>${stepIdx<steps.length-1?'Continue →':'Start my path'}</button>`;
   document.getElementById('onboard-opts').querySelectorAll('button').forEach((btn,oi)=>{
     btn.addEventListener('click',()=>pickOpt(st.opts[oi]));
   });
+  document.getElementById('onboard-next-btn').addEventListener('click',nextStep);
 }
 
 function pickOpt(o){

@@ -86,6 +86,7 @@
       <select id="f-decade" onchange="applyFilters()"><option value="">All decades</option></select>
       <select id="f-guitar" onchange="applyFilters()"><option value="">Electric / Acoustic</option><option value="Electric">Electric</option><option value="Acoustic">Acoustic</option><option value="Classical">Classical</option></select>
       <select id="f-tuning" onchange="applyFilters()"><option value="">All tunings</option></select>
+      <select id="f-technique" onchange="applyFilters()"><option value="">All techniques</option></select>
     </div>
     <input class="search" type="text" placeholder="Search solos, bands, guitarists..." oninput="applyFilters()" id="search">
     <div class="tabs">
@@ -136,6 +137,8 @@ function populateFilters() {
   const subgenres = [...new Set(allSolos.map(s => s.subgenre).filter(Boolean))].sort();
   const decades = [...new Set(allSolos.map(s => s.decade).filter(Boolean))].sort();
   const tunings = [...new Set(allSolos.map(s => s.tuning).filter(Boolean))].sort();
+  const techniques = [...new Set(allSolos.flatMap(s => (s.techniques||'').split(',').map(t => t.trim())).filter(Boolean))].sort();
+fill('f-technique', techniques);
   fill('f-genre', genres);
   fill('f-subgenre', subgenres);
   fill('f-decade', decades);
@@ -158,6 +161,7 @@ function applyFilters() {
   const decade = document.getElementById('f-decade').value;
   const guitar = document.getElementById('f-guitar').value;
   const tuning = document.getElementById('f-tuning').value;
+  const technique = document.getElementById('f-technique').value;
 
   filtered = allSolos.filter(s => {
     if (q && !`${s.song_title} ${s.band} ${s.guitarist} ${s.artist}`.toLowerCase().includes(q)) return false;
@@ -170,6 +174,7 @@ function applyFilters() {
     if (activeTab === 'beginner' && s.difficulty_num > 2) return false;
     if (activeTab === 'learned' && !learned.includes(s.id)) return false;
     if (activeTab === 'wishlist' && !wishlist.includes(s.id)) return false;
+    if (technique && !(s.techniques||'').split(',').map(t => t.trim()).includes(technique)) return false;
     return true;
   });
 

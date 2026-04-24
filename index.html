@@ -121,6 +121,7 @@ let activeTab = 'all';
 let learned = JSON.parse(localStorage.getItem('learned') || '[]');
 let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
 let voted = JSON.parse(localStorage.getItem('voted') || '[]');
+  let activeTechnique = '';
 let currentDetail = null;
   
 async function init() {
@@ -161,7 +162,8 @@ function applyFilters() {
   const decade = document.getElementById('f-decade').value;
   const guitar = document.getElementById('f-guitar').value;
   const tuning = document.getElementById('f-tuning').value;
-  const technique = document.getElementById('f-technique').value;
+  activeTechnique = document.getElementById('f-technique').value;
+const technique = activeTechnique;
 
   filtered = allSolos.filter(s => {
     if (q && !`${s.song_title} ${s.band} ${s.guitarist} ${s.artist}`.toLowerCase().includes(q)) return false;
@@ -213,7 +215,7 @@ function renderGrid() {
       <div class="tags">
         ${s.genre ? `<span class="tag tag-genre">${s.genre}</span>` : ''}
         ${s.subgenre ? `<span class="tag tag-genre" style="opacity:.7">${s.subgenre}</span>` : ''}
-        ${(s.techniques||'').split(',').slice(0,2).map(t => `<span class="tag tag-tech">${t.trim()}</span>`).join('')}
+        ${(s.techniques||'').split(',').map(t => t.trim()).filter(Boolean).map(t => `<span class="tag tag-tech" style="${t === activeTechnique ? 'background:#fff3cd;color:#856404;border:1px solid #ffc107' : ''}">${t}</span>`).join('')}
       </div>
       <div class="card-meta">
         <span>${s.key || ''}</span>

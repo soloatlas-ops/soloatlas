@@ -340,15 +340,20 @@ function renderOnboarding(){
   prog.innerHTML=steps.map((_,i)=>`<div class="onboard-dot ${i<=stepIdx?'done':''}"></div>`).join('');
   const st=steps[stepIdx];
   const sel=answers[st.key]||(st.multi?[]:null);
+  const optsHTML=st.opts.map((o,oi)=>{
+    const isSelected=st.multi?(sel.includes(o)):(sel===o);
+    return `<button class="onboard-opt ${isSelected?'sel':''}" data-idx="${oi}">${o}</button>`;
+  }).join('');
   document.getElementById('onboard-step-content').innerHTML=`
     <div class="onboard-q">${st.q}</div>
     <div class="onboard-sub">${st.sub}</div>
-    <div class="onboard-opts">
-      ${st.opts.map(o=>`<button class="onboard-opt ${st.multi?(sel.includes(o)?'sel':''):(sel===o?'sel':'')}" onclick="pickOpt(${JSON.stringify(o)})">${o}</button>`).join('')}
-    </div>
+    <div class="onboard-opts" id="onboard-opts">${optsHTML}</div>
     <button class="onboard-next" id="onboard-next-btn" onclick="nextStep()" ${!answers[st.key]||(st.multi&&!answers[st.key].length)?'disabled':''}>
       ${stepIdx<steps.length-1?'Continue →':'Start my path'}
     </button>`;
+  document.getElementById('onboard-opts').querySelectorAll('button').forEach((btn,oi)=>{
+    btn.addEventListener('click',()=>pickOpt(st.opts[oi]));
+  });
 }
 
 function pickOpt(o){

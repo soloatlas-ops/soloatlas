@@ -3,902 +3,822 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SoloAtlas — The Guitar Solo Database</title>
+  <title>SoloAtlas — Find Your Next Guitar Solo</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0e0e0e;
-      --bg2: #161616;
-      --bg3: #1e1e1e;
-      --border: #2a2a2a;
-      --border2: #333;
-      --text: #f0ece4;
-      --text2: #a09a90;
-      --text3: #5a5550;
-      --gold: #c9a84c;
-      --gold2: #e8c96e;
-      --gold-bg: rgba(201,168,76,0.08);
-      --gold-border: rgba(201,168,76,0.25);
-      --green-bg: rgba(74,163,100,0.12);
-      --green: #4aa364;
-      --red-bg: rgba(200,80,80,0.12);
-      --red: #c85050;
-      --purple-bg: rgba(130,100,200,0.12);
-      --purple: #9b7de0;
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#1f1f1f;
+      --border:#222;--border2:#2e2e2e;--border3:#3a3a3a;
+      --text:#f0ece4;--text2:#9a948a;--text3:#4a4540;--text4:#2e2c2a;
+      --gold:#c9a84c;--gold2:#e8c96e;--gold-dim:#8a7030;
+      --gold-bg:rgba(201,168,76,0.07);--gold-border:rgba(201,168,76,0.2);
+      --green:#4aa364;--green-bg:rgba(74,163,100,0.1);--green-border:rgba(74,163,100,0.25);
+      --red:#c85050;--red-bg:rgba(200,80,80,0.1);
+      --purple:#9b7de0;--purple-bg:rgba(130,100,200,0.1);
+      --radius:8px;--radius-lg:12px;
     }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    /* NAV */
-    .nav {
-      border-bottom: 1px solid var(--border);
-      padding: 18px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--bg);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(12px);
-    }
-    .nav-logo {
-      font-family: 'Playfair Display', serif;
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-      cursor: pointer;
-      letter-spacing: -0.5px;
-    }
-    .nav-logo span { color: var(--gold); }
-    .nav-link {
-      font-size: 13px;
-      color: var(--text2);
-      cursor: pointer;
-      letter-spacing: 0.02em;
-      transition: color .2s;
-    }
-    .nav-link:hover { color: var(--text); }
-
-    /* CONTAINER */
-    .container { max-width: 100%; margin: 0; padding: 28px 40px; }
-
-    /* FILTERS */
-    .filters {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    select {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg2);
-      color: var(--text2);
-      cursor: pointer;
-      transition: border-color .2s, color .2s;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a5550' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      padding-right: 28px;
-    }
-    select:focus { outline: none; border-color: var(--gold); color: var(--text); }
-    select option { background: #1e1e1e; }
-
-    .search {
-      width: 100%;
-      padding: 11px 16px;
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      font-size: 14px;
-      font-family: 'DM Sans', sans-serif;
-      margin-bottom: 24px;
-      background: var(--bg2);
-      color: var(--text);
-      transition: border-color .2s;
-    }
-    .search::placeholder { color: var(--text3); }
-    .search:focus { outline: none; border-color: var(--gold); }
-
-    /* TABS */
-    .tabs {
-      display: flex;
-      gap: 24px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
-      overflow-x: auto;
-    }
-    .tab {
-      font-size: 13px;
-      color: var(--text3);
-      padding: 10px 0;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      white-space: nowrap;
-      transition: color .2s;
-      letter-spacing: 0.02em;
-    }
-    .tab:hover { color: var(--text2); }
-    .tab.active { color: var(--gold); border-bottom: 2px solid var(--gold); font-weight: 500; }
-
-    /* GRID */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-
-    .card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      opacity: 0;
-      transition: opacity .2s;
-    }
-    .card:hover { border-color: var(--border2); background: var(--bg3); }
-    .card:hover::before { opacity: 1; }
-
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-    .card-title { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.3; }
-    .card-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
-    .card-meta { display: flex; gap: 12px; margin-top: 12px; align-items: center; }
-    .card-meta span { font-size: 12px; color: var(--text3); }
-
-    /* TAGS */
-    .tags { display: flex; gap: 5px; flex-wrap: wrap; margin: 10px 0; }
-    .tag { font-size: 11px; padding: 3px 9px; border-radius: 4px; font-weight: 500; }
-    .tag-genre { background: var(--purple-bg); color: var(--purple); }
-    .tag-tech { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
-
-    /* DIFFICULTY PILLS */
-    .diff-1, .diff-2 { background: var(--green-bg); color: var(--green); }
-    .diff-3 { background: var(--gold-bg); color: var(--gold2); }
-    .diff-4 { background: rgba(200,140,50,0.12); color: #c88c32; }
-    .diff-5 { background: var(--red-bg); color: var(--red); }
-    .pill { font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: 500; white-space: nowrap; }
-
-    /* UPVOTE */
-    .upvote {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 4px;
-      border: 1px solid var(--border2);
-      background: transparent;
-      color: var(--text3);
-      cursor: pointer;
-      transition: all .2s;
-      font-family: 'DM Sans', sans-serif;
-    }
-    .upvote:hover, .upvote.voted {
-      background: var(--gold-bg);
-      border-color: var(--gold-border);
-      color: var(--gold);
-    }
-
-    /* DETAIL */
-    .detail-back {
-      font-size: 13px;
-      color: var(--text3);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 20px;
-      transition: color .2s;
-    }
-    .detail-back:hover { color: var(--text); }
-
-    .detail-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      line-height: 1.2;
-      color: var(--text);
-    }
-    .detail-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
-
-    /* STATS */
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-    .stat {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
-    }
-    .stat-label { font-size: 10px; color: var(--text3); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .06em; }
-    .stat-val { font-size: 14px; font-weight: 500; color: var(--text); }
-
-    /* SECTIONS */
-    .section {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 10px;
-    }
-    .section-label {
-      font-size: 10px;
-      font-weight: 500;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: 10px;
-    }
-
-    /* LINK BUTTONS */
-    .link-btn {
-      width: 100%;
-      font-size: 13px;
-      padding: 10px 14px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg3);
-      color: var(--text2);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-      text-align: left;
-      font-family: 'DM Sans', sans-serif;
-      transition: all .2s;
-    }
-    .link-btn:hover { border-color: var(--gold-border); color: var(--text); background: var(--gold-bg); }
-    .link-btn:last-child { margin-bottom: 0; }
-
-    /* ACTION ROW */
-    .action-row { display: flex; gap: 8px; margin-bottom: 20px; }
-    .action-btn {
-      flex: 1;
-      font-size: 13px;
-      padding: 10px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border2);
-      background: var(--bg2);
-      color: var(--text2);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all .2s;
-      font-family: 'DM Sans', sans-serif;
-    }
-    .action-btn:hover { border-color: var(--border2); color: var(--text); }
-    .action-btn.learned { background: var(--green-bg); border-color: rgba(74,163,100,0.3); color: var(--green); }
-    .action-btn.saved { background: var(--purple-bg); border-color: rgba(130,100,200,0.3); color: var(--purple); }
-
-    /* PATH STEPS */
-    .path-step {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .path-step:last-child { border-bottom: none; }
-    .step-num {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--bg3);
-      border: 1px solid var(--border2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text3);
-      flex-shrink: 0;
-    }
-
-    /* GUITARIST CARDS */
-    .guitarist-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 8px;
-      transition: border-color .2s;
-    }
-    .guitarist-card:hover { border-color: var(--border2); }
-    .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--bg3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--gold);
-      flex-shrink: 0;
-      border: 1px solid var(--gold-border);
-    }
-
-    /* MISC */
-    .empty { text-align: center; padding: 80px 20px; color: var(--text3); font-size: 14px; }
-    .count { font-size: 13px; color: var(--text3); margin-bottom: 16px; }
-
-    /* PATH VIEW */
-    .agent-choice {
-      text-align: left;
-      padding: 14px 18px;
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      background: var(--bg2);
-      font-size: 13px;
-      font-family: 'DM Sans', sans-serif;
-      color: var(--text2);
-      cursor: pointer;
-      width: 100%;
-      display: block;
-      margin-bottom: 8px;
-      transition: all .2s;
-    }
-    .agent-choice:hover { border-color: var(--gold-border); color: var(--text); background: var(--gold-bg); }
-
-    button {
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
-    }
-
-    @media (max-width: 600px) {
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .filters { grid-template-columns: 1fr 1fr; }
-      .nav { padding: 14px 16px; }
-      .container { padding: 20px 16px; }
+    html{scroll-behavior:smooth}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.4}
+    .nav{border-bottom:1px solid var(--border);padding:0 40px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:56px;background:rgba(10,10,10,0.95);position:sticky;top:0;z-index:100;backdrop-filter:blur(20px)}
+    .nav-logo{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--text);cursor:pointer;letter-spacing:-0.3px;transition:opacity .2s}
+    .nav-logo:hover{opacity:.8}
+    .nav-logo span{color:var(--gold)}
+    .nav-center{display:flex;gap:4px;align-items:center;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px}
+    .nav-link{font-size:13px;color:var(--text2);cursor:pointer;letter-spacing:0.02em;transition:all .2s;padding:6px 18px;border-radius:16px;font-weight:400}
+    .nav-link:hover{color:var(--text)}
+    .nav-link.active{background:var(--bg4);color:var(--gold);font-weight:500}
+    .nav-right{display:flex;justify-content:flex-end}
+    .nav-link-sm{font-size:13px;color:var(--text3);cursor:pointer;transition:color .2s}
+    .nav-link-sm:hover{color:var(--text2)}
+    .nav-link-sm.active{color:var(--gold)}
+    .view{display:none}.view.active{display:block}
+    #onboarding-view{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 24px;position:relative}
+    #onboarding-view::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(201,168,76,0.08),transparent);pointer-events:none}
+    .onboard-step{width:100%;max-width:580px;animation:fadeUp .4s ease both}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .onboard-eyebrow{font-size:11px;font-weight:500;color:var(--gold);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+    .onboard-title{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;line-height:1.15;margin-bottom:8px;color:var(--text)}
+    .onboard-subtitle{font-size:15px;color:var(--text2);margin-bottom:36px;line-height:1.6}
+    .onboard-progress{display:flex;gap:6px;margin-bottom:36px}
+    .progress-dot{height:3px;border-radius:2px;background:var(--border2);transition:all .3s;flex:1}
+    .progress-dot.done{background:var(--gold)}
+    .progress-dot.active{background:var(--gold2)}
+    .choice-grid{display:grid;gap:8px}
+    .choice-btn{text-align:left;padding:14px 18px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg2);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text2);cursor:pointer;width:100%;transition:all .2s;display:flex;align-items:center;gap:12px}
+    .choice-btn:hover{border-color:var(--gold-border);color:var(--text);background:var(--gold-bg)}
+    .choice-btn.selected{border-color:var(--gold);color:var(--gold);background:var(--gold-bg)}
+    .choice-icon{width:32px;height:32px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .genre-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+    .genre-chip{padding:8px 16px;border:1px solid var(--border2);border-radius:20px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .2s;background:var(--bg2)}
+    .genre-chip:hover{border-color:var(--border3);color:var(--text)}
+    .genre-chip.selected{border-color:var(--gold);color:var(--gold);background:var(--gold-bg)}
+    .onboard-search{width:100%;padding:12px 16px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg2);color:var(--text);margin-bottom:12px;transition:border-color .2s}
+    .onboard-search::placeholder{color:var(--text3)}
+    .onboard-search:focus{outline:none;border-color:var(--gold)}
+    .solo-search-results{max-height:260px;overflow-y:auto;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg2);margin-bottom:16px}
+    .solo-search-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:background .15s}
+    .solo-search-item:last-child{border-bottom:none}
+    .solo-search-item:hover{background:var(--bg3)}
+    .solo-search-item.selected{background:var(--gold-bg)}
+    .selected-solos{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;min-height:32px}
+    .selected-tag{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:20px;font-size:12px;color:var(--gold)}
+    .selected-tag button{background:none;border:none;color:var(--gold);cursor:pointer;font-size:14px;line-height:1;padding:0}
+    .onboard-btn{width:100%;padding:14px;border:none;border-radius:var(--radius);background:var(--gold);color:#0a0a0a;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;margin-top:8px}
+    .onboard-btn:hover{background:var(--gold2);transform:translateY(-1px)}
+    .onboard-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .skip-link{text-align:center;margin-top:16px;font-size:13px;color:var(--text3);cursor:pointer;transition:color .2s}
+    .skip-link:hover{color:var(--text2)}
+    #dashboard{padding:0}
+    .dash-hero{padding:40px 40px 32px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(201,168,76,0.04) 0%,transparent 100%)}
+    .dash-greeting{font-family:'Playfair Display',serif;font-size:28px;font-weight:600;margin-bottom:4px}
+    .dash-greeting span{color:var(--gold);font-style:italic}
+    .dash-sub{font-size:14px;color:var(--text2);margin-bottom:24px}
+    .stats-row{display:flex;gap:12px;flex-wrap:wrap}
+    .stat-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;font-size:13px;color:var(--text2)}
+    .stat-pill strong{color:var(--text);font-weight:500}
+    .stat-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+    .dash-body{padding:32px 40px;display:grid;grid-template-columns:1fr 340px;gap:32px;align-items:start}
+    .section-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+    .section-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:600}
+    .section-link{font-size:12px;color:var(--text3);cursor:pointer;transition:color .2s}
+    .section-link:hover{color:var(--gold)}
+    .rec-cards{display:grid;gap:10px;margin-bottom:32px}
+    .rec-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;display:flex;gap:16px;align-items:flex-start}
+    .rec-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--gold-bg),transparent);opacity:0;transition:opacity .2s}
+    .rec-card:hover{border-color:var(--gold-border)}
+    .rec-card:hover::after{opacity:1}
+    .rec-num{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--border2);line-height:1;flex-shrink:0;width:40px;transition:color .2s}
+    .rec-card:hover .rec-num{color:var(--gold-dim)}
+    .rec-body{flex:1;position:relative;z-index:1}
+    .rec-title{font-size:16px;font-weight:500;margin-bottom:3px;color:var(--text)}
+    .rec-meta{font-size:12px;color:var(--text3);margin-bottom:10px}
+    .rec-reason{font-size:12px;color:var(--text2);line-height:1.5;font-style:italic;padding:8px 12px;background:var(--bg3);border-radius:6px;border-left:2px solid var(--gold-dim)}
+    .rec-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+    .continue-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;gap:14px;margin-bottom:32px}
+    .continue-card:hover{border-color:var(--border2)}
+    .continue-icon{width:40px;height:40px;border-radius:var(--radius);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .sidebar-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
+    .sidebar-solo-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:color .2s}
+    .sidebar-solo-item:last-child{border-bottom:none}
+    .sidebar-solo-item:hover .sidebar-solo-title{color:var(--gold)}
+    .sidebar-solo-title{font-size:13px;font-weight:500;color:var(--text);transition:color .2s}
+    .sidebar-solo-meta{font-size:11px;color:var(--text3);margin-top:1px}
+    .new-badge{font-size:10px;padding:2px 8px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);border-radius:10px;font-weight:500}
+    #catalog-view{padding:32px 40px}
+    .catalog-header{margin-bottom:24px}
+    .catalog-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px}
+    .catalog-sub{font-size:14px;color:var(--text2)}
+    .table-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+    .table-search{flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);color:var(--text);transition:border-color .2s}
+    .table-search::placeholder{color:var(--text3)}
+    .table-search:focus{outline:none;border-color:var(--gold)}
+    .table-select{padding:9px 28px 9px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);color:var(--text2);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a4540' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color .2s}
+    .table-select:focus{outline:none;border-color:var(--gold)}
+    .table-select option{background:#1a1a1a}
+    .table-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead{background:var(--bg2);border-bottom:1px solid var(--border2)}
+    th{padding:12px 16px;text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;cursor:pointer;user-select:none;transition:color .2s}
+    th:hover{color:var(--text2)}
+    th.sort-asc::after{content:' ↑'}
+    th.sort-desc::after{content:' ↓'}
+    td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text2)}
+    tr:last-child td{border-bottom:none}
+    tr{cursor:pointer;transition:background .15s}
+    tr:hover td{background:var(--bg2)}
+    .td-title{font-weight:500;color:var(--text);font-size:14px}
+    .td-tags{display:flex;gap:4px;flex-wrap:wrap}
+    .tbl-tag{font-size:10px;padding:2px 7px;border-radius:3px;white-space:nowrap}
+    .tbl-diff-1,.tbl-diff-2{background:var(--green-bg);color:var(--green)}
+    .tbl-diff-3{background:var(--gold-bg);color:var(--gold2)}
+    .tbl-diff-4{background:rgba(200,140,50,0.1);color:#c88c32}
+    .tbl-diff-5{background:var(--red-bg);color:var(--red)}
+    .tbl-genre{background:var(--purple-bg);color:var(--purple)}
+    .tbl-links{display:flex;gap:6px}
+    .tbl-link{font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer;transition:all .15s;background:none;font-family:'DM Sans',sans-serif;white-space:nowrap}
+    .tbl-link:hover{border-color:var(--gold-border);color:var(--gold)}
+    .table-count{font-size:13px;color:var(--text3);margin-bottom:10px}
+    .load-more{width:100%;padding:14px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:12px;transition:all .2s}
+    .load-more:hover{border-color:var(--border3);color:var(--text)}
+    #detail-view{padding:32px 40px}
+    .detail-back{font-size:13px;color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:24px;transition:color .2s}
+    .detail-back:hover{color:var(--text)}
+    .detail-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;margin-bottom:6px;line-height:1.2}
+    .detail-sub{font-size:14px;color:var(--text2);margin-bottom:20px}
+    .detail-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+    .dstat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+    .dstat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+    .dstat-val{font-size:15px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+    .detail-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px}
+    .detail-section-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+    .detail-action-row{display:flex;gap:8px;margin-bottom:20px}
+    .detail-action{flex:1;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+    .detail-action:hover{border-color:var(--border3);color:var(--text)}
+    .detail-action.learned{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+    .detail-action.saved{background:var(--purple-bg);border-color:rgba(130,100,200,0.3);color:var(--purple)}
+    .detail-link{width:100%;font-size:13px;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:6px;text-align:left;font-family:'DM Sans',sans-serif;transition:all .2s}
+    .detail-link:hover{border-color:var(--gold-border);color:var(--text);background:var(--gold-bg)}
+    .path-step{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+    .path-step:last-child{border-bottom:none}
+    .path-step:hover .path-step-title{color:var(--gold)}
+    .step-num{width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--text3);flex-shrink:0;font-family:'DM Mono',monospace}
+    .path-step-title{font-size:13px;font-weight:500;color:var(--text);transition:color .2s}
+    .next-grid{display:flex;gap:8px;flex-wrap:wrap}
+    .next-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:9px 14px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .2s}
+    .next-item:hover{border-color:var(--gold-border);color:var(--gold)}
+    #guitarists-view{padding:32px 40px}
+    .guitarist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:20px}
+    .guitarist-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;gap:14px}
+    .guitarist-card:hover{border-color:var(--border2)}
+    .avatar{width:44px;height:44px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--gold);flex-shrink:0;border:1px solid var(--gold-border);font-family:'DM Mono',monospace}
+    #guitarist-profile-view{padding:32px 40px}
+    .tag{font-size:11px;padding:3px 9px;border-radius:4px;font-weight:500}
+    .tag-genre{background:var(--purple-bg);color:var(--purple)}
+    .tag-tech{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+    .tag-diff-1,.tag-diff-2{background:var(--green-bg);color:var(--green)}
+    .tag-diff-3{background:var(--gold-bg);color:var(--gold2)}
+    .tag-diff-4{background:rgba(200,140,50,0.1);color:#c88c32}
+    .tag-diff-5{background:var(--red-bg);color:var(--red)}
+    .upvote{display:flex;align-items:center;gap:5px;font-size:12px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+    .upvote:hover,.upvote.voted{background:var(--gold-bg);border-color:var(--gold-border);color:var(--gold)}
+    .empty{text-align:center;padding:80px 20px;color:var(--text3);font-size:14px}
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:var(--bg)}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--border3)}
+    @media(max-width:900px){
+      .dash-body{grid-template-columns:1fr}
+      .dash-sidebar{display:none}
+      .detail-stats{grid-template-columns:repeat(2,1fr)}
+      .nav{padding:0 20px}
+      #catalog-view,#detail-view,#guitarists-view,#guitarist-profile-view{padding:24px 20px}
+      .dash-hero{padding:28px 20px 20px}
+      .dash-body{padding:24px 20px}
     }
   </style>
 </head>
-<body>
 
-<nav class="nav">
-  <div class="nav-logo" onclick="showView('list')">Solo<span>Atlas</span></div>
-  <div style="display:flex;gap:20px">
-    <span class="nav-link" onclick="showView('guitarists')">Guitarists</span>
-    <span class="nav-link" onclick="showView('path')">Find my path</span>
+  <body>
+
+<nav class="nav" id="main-nav" style="display:none">
+  <div class="nav-logo" onclick="showView('dashboard')">Solo<span>Atlas</span></div>
+  <div class="nav-center">
+    <span class="nav-link" id="nav-path" onclick="showView('dashboard')">My Path</span>
+    <span class="nav-link" id="nav-catalog" onclick="showView('catalog')">Catalog</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-link-sm" id="nav-guitarists" onclick="showView('guitarists')">Guitarists</span>
   </div>
 </nav>
 
-<div class="container">
-  <div id="list-view">
-    <div class="filters">
-      <select id="f-genre" onchange="applyFilters()"><option value="">All genres</option></select>
-      <select id="f-subgenre" onchange="applyFilters()"><option value="">All subgenres</option></select>
-      <select id="f-difficulty" onchange="applyFilters()"><option value="">All difficulties</option><option value="1">Beginner</option><option value="2">Easy</option><option value="3">Intermediate</option><option value="4">Hard</option><option value="5">Expert</option></select>
-      <select id="f-decade" onchange="applyFilters()"><option value="">All decades</option></select>
-      <select id="f-guitar" onchange="applyFilters()"><option value="">Electric / Acoustic</option><option value="Electric">Electric</option><option value="Acoustic">Acoustic</option><option value="Classical">Classical</option></select>
-      <select id="f-tuning" onchange="applyFilters()"><option value="">All tunings</option></select>
-      <select id="f-technique" onchange="applyFilters()"><option value="">All techniques</option></select>
-    </div>
-    <input class="search" type="text" placeholder="Search solos, bands, guitarists..." oninput="applyFilters()" id="search">
-    <div class="tabs">
-      <div class="tab active" onclick="setTab(this,'all')">All solos</div>
-      <div class="tab" onclick="setTab(this,'beginner')">Beginner picks</div>
-      <div class="tab" onclick="setTab(this,'loved')">Most loved</div>
-      <div class="tab" onclick="setTab(this,'learned')">My learned</div>
-      <div class="tab" onclick="setTab(this,'wishlist')">My wishlist</div>
-    </div>
-    <div class="count" id="solo-count"></div>
-    <div class="grid" id="solo-grid"></div>
+<div id="onboarding-view" class="view active">
+  <div id="onboarding">
+    <div class="onboard-step" id="onboard-step-content"></div>
   </div>
+</div>
 
-  <div id="detail-view" style="display:none"></div>
-  <div id="guitarists-view" style="display:none"></div>
-  <div id="path-view" style="display:none">
-  <div style="font-size:20px;font-weight:600;margin-bottom:4px">Find my path</div>
-  <div style="font-size:13px;color:#666;margin-bottom:20px">Answer a few questions and we'll build your personal learning path</div>
-  <div id="path-questions"></div>
-  <div id="path-results" style="display:none"></div>
+<div id="dashboard-view" class="view">
+  <div id="dashboard"></div>
 </div>
+
+<div id="catalog-view" class="view">
+  <div class="catalog-header">
+    <div class="catalog-title">The Catalog</div>
+    <div class="catalog-sub">Every solo in the database — sortable, filterable, explorable</div>
+  </div>
+  <div class="table-filters">
+    <input class="table-search" type="text" placeholder="Search solos, bands, guitarists..." oninput="filterTable()" id="table-search">
+    <select class="table-select" onchange="filterTable()" id="tf-genre"><option value="">All genres</option></select>
+    <select class="table-select" onchange="filterTable()" id="tf-difficulty"><option value="">All difficulties</option><option value="1">Beginner</option><option value="2">Easy</option><option value="3">Intermediate</option><option value="4">Hard</option><option value="5">Expert</option></select>
+    <select class="table-select" onchange="filterTable()" id="tf-decade"><option value="">All decades</option></select>
+    <select class="table-select" onchange="filterTable()" id="tf-guitar"><option value="">All types</option><option value="Electric">Electric</option><option value="Acoustic">Acoustic</option><option value="Classical">Classical</option></select>
+    <select class="table-select" onchange="filterTable()" id="tf-technique"><option value="">All techniques</option></select>
+  </div>
+  <div class="table-count" id="table-count"></div>
+  <div class="table-wrap">
+    <table id="solo-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable('song_title')">Song</th>
+          <th onclick="sortTable('band')">Band</th>
+          <th onclick="sortTable('guitarist')">Guitarist</th>
+          <th onclick="sortTable('difficulty_num')">Difficulty</th>
+          <th onclick="sortTable('genre')">Genre</th>
+          <th onclick="sortTable('decade')">Decade</th>
+          <th onclick="sortTable('bpm')">BPM</th>
+          <th>Techniques</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+  <button class="load-more" id="load-more-btn" onclick="loadMore()" style="display:none">Load more solos</button>
 </div>
+
+<div id="detail-view" class="view"></div>
+
+<div id="guitarists-view" class="view">
+  <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px">Guitarists</div>
+  <div style="font-size:14px;color:var(--text2);margin-bottom:4px">Browse solos by player</div>
+  <input class="table-search" type="text" placeholder="Search guitarists..." oninput="filterGuitarists(this.value)" style="max-width:360px;margin-top:16px">
+  <div class="guitarist-grid" id="guitarist-grid"></div>
+</div>
+
+<div id="guitarist-profile-view" class="view"></div>
 
 <script>
-const SUPABASE_URL = 'https://ybmhnhlkebbklexcuqna.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibWhuaGxrZWJia2xleGN1cW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjUyOTAsImV4cCI6MjA5MjU0MTI5MH0.pEZDLIoMHMr_5ngzQ0oZDHHMdUZatULUuB1bZVyvpCA';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL='https://ybmhnhlkebbklexcuqna.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibWhuaGxrZWJia2xleGN1cW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjUyOTAsImV4cCI6MjA5MjU0MTI5MH0.pEZDLIoMHMr_5ngzQ0oZDHHMdUZatULUuB1bZVyvpCA';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let allSolos = [];
-let filtered = [];
-let activeTab = 'all';
-let learned = JSON.parse(localStorage.getItem('learned') || '[]');
-let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-let voted = JSON.parse(localStorage.getItem('voted') || '[]');
-  let activeTechnique = '';
-let currentDetail = null;
-  
-async function init() {
-  const { data, error } = await sb.from('solos').select('*').order('upvotes', { ascending: false });
-  if (error) { console.error(error); return; }
-  allSolos = data;
-  populateFilters();
-  applyFilters();
-  renderGuitarists();
+let allSolos=[];
+let tableFiltered=[];
+let tableSort={col:'upvotes',dir:'desc'};
+let tableOffset=0;
+const TABLE_PAGE=20;
+let activeTechnique='';
+let currentDetail=null;
+let learned=JSON.parse(localStorage.getItem('sa_learned')||'[]');
+let wishlist=JSON.parse(localStorage.getItem('sa_wishlist')||'[]');
+let voted=JSON.parse(localStorage.getItem('sa_voted')||'[]');
+let userPrefs=JSON.parse(localStorage.getItem('sa_prefs')||'null');
+let lastViewed=JSON.parse(localStorage.getItem('sa_last')||'null');
+
+async function init(){
+  const{data,error}=await sb.from('solos').select('*').order('upvotes',{ascending:false});
+  if(error){console.error(error);return;}
+  allSolos=data;
+  populateCatalogFilters();
+  if(userPrefs){
+    document.getElementById('main-nav').style.display='grid';
+    showView('dashboard');
+    renderDashboard();
+  } else {
+    startOnboarding();
+  }
 }
 
-function populateFilters() {
-  const genres = [...new Set(allSolos.map(s => s.genre).filter(Boolean))].sort();
-  const subgenres = [...new Set(allSolos.map(s => s.subgenre).filter(Boolean))].sort();
-  const decades = [...new Set(allSolos.map(s => s.decade).filter(Boolean))].sort();
-  const tunings = [...new Set(allSolos.map(s => s.tuning).filter(Boolean))].sort();
-  const techniques = [...new Set(allSolos.flatMap(s => (s.techniques||'').split(',').map(t => t.trim())).filter(Boolean))].sort();
-fill('f-technique', techniques);
-  fill('f-genre', genres);
-  fill('f-subgenre', subgenres);
-  fill('f-decade', decades);
-  fill('f-tuning', tunings);
+let obState={step:0,level:null,genres:[],learnedIds:[]};
+let searchTimeout=null;
+
+function startOnboarding(){
+  obState={step:0,level:null,genres:[],learnedIds:[]};
+  renderObStep();
 }
 
-function fill(id, vals) {
-  const el = document.getElementById(id);
-  const first = el.options[0];
-  el.innerHTML = '';
-  el.appendChild(first);
-  vals.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o); });
+function renderObStep(){
+  const el=document.getElementById('onboard-step-content');
+  const totalSteps=4;
+  const dots=Array.from({length:totalSteps},(_,i)=>`<div class="progress-dot ${i<obState.step?'done':i===obState.step?'active':''}"></div>`).join('');
+  if(obState.step===0){
+    el.innerHTML=`
+      <div class="onboard-eyebrow">Welcome to SoloAtlas</div>
+      <div class="onboard-title">Find your next<br><em>guitar solo</em> to learn</div>
+      <div class="onboard-subtitle">We'll build you a personal learning path based on your style and skill level. Takes 60 seconds.</div>
+      <div class="onboard-progress">${dots}</div>
+      <div class="choice-grid">
+        ${[{l:'Complete beginner',s:'I can barely hold the guitar',i:'🎸',v:1},{l:'Beginner',s:'I know a few chords and riffs',i:'🎵',v:2},{l:'Intermediate',s:'I can play some solos',i:'🎶',v:3},{l:'Advanced',s:'I want to level up techniques',i:'⚡',v:4}].map(c=>`
+          <button class="choice-btn" onclick="obChooseLevel(${c.v})">
+            <span class="choice-icon">${c.i}</span>
+            <span><strong style="color:var(--text);font-size:14px">${c.l}</strong><br><span style="font-size:12px;color:var(--text3)">${c.s}</span></span>
+          </button>`).join('')}
+      </div>`;
+  } else if(obState.step===1){
+    const genres=[...new Set(allSolos.map(s=>s.genre).filter(Boolean))].sort();
+    el.innerHTML=`
+      <div class="onboard-eyebrow">Step 2 of ${totalSteps}</div>
+      <div class="onboard-title">What genres<br>do you <em>love?</em></div>
+      <div class="onboard-subtitle">Pick everything that resonates — we'll prioritize these styles.</div>
+      <div class="onboard-progress">${dots}</div>
+      <div class="genre-chips">${genres.map(g=>`<div class="genre-chip ${obState.genres.includes(g)?'selected':''}" onclick="obToggleGenre('${g}')">${g}</div>`).join('')}</div>
+      <button class="onboard-btn" onclick="obNext()" ${obState.genres.length===0?'disabled':''}>Continue</button>
+      <div class="skip-link" onclick="obSkipGenre()">Skip this step</div>`;
+  } else if(obState.step===2){
+    el.innerHTML=`
+      <div class="onboard-eyebrow">Step 3 of ${totalSteps}</div>
+      <div class="onboard-title">Solos you've<br><em>already learned</em></div>
+      <div class="onboard-subtitle">Search and select any solos you can play. We'll use these to calibrate your path.</div>
+      <div class="onboard-progress">${dots}</div>
+      <div class="selected-solos" id="ob-selected">${obState.learnedIds.map(id=>{const s=allSolos.find(x=>x.id===id);return s?`<div class="selected-tag">${s.song_title}<button onclick="obRemoveLearned(${id})">×</button></div>`:''}).join('')}</div>
+      <input class="onboard-search" type="text" placeholder="Search solos you know..." oninput="obSearchSolos(this.value)" id="ob-search">
+      <div class="solo-search-results" id="ob-results" style="display:none"></div>
+      <button class="onboard-btn" onclick="obNext()">Continue</button>
+      <div class="skip-link" onclick="obNext()">Skip — I'm just starting out</div>`;
+  } else if(obState.step===3){
+    el.innerHTML=`
+      <div class="onboard-eyebrow">Almost there</div>
+      <div class="onboard-title">Your path is<br><em>ready</em></div>
+      <div class="onboard-subtitle">We've built you a personalized learning path based on your level${obState.genres.length?` and love of ${obState.genres.slice(0,2).join(' & ')}`:''}.</div>
+      <div class="onboard-progress">${dots}</div>
+      <button class="onboard-btn" onclick="obFinish()">See my path →</button>`;
+  }
 }
 
-function applyFilters() {
-  const q = document.getElementById('search').value.toLowerCase();
-  const genre = document.getElementById('f-genre').value;
-  const subgenre = document.getElementById('f-subgenre').value;
-  const diff = document.getElementById('f-difficulty').value;
-  const decade = document.getElementById('f-decade').value;
-  const guitar = document.getElementById('f-guitar').value;
-  const tuning = document.getElementById('f-tuning').value;
-  activeTechnique = document.getElementById('f-technique').value;
-const technique = activeTechnique;
-
-  filtered = allSolos.filter(s => {
-    if (q && !`${s.song_title} ${s.band} ${s.guitarist} ${s.artist}`.toLowerCase().includes(q)) return false;
-    if (genre && s.genre !== genre) return false;
-    if (subgenre && s.subgenre !== subgenre) return false;
-    if (diff && s.difficulty_num !== parseInt(diff)) return false;
-    if (decade && s.decade !== decade) return false;
-    if (guitar && s.guitar_type !== guitar) return false;
-    if (tuning && s.tuning !== tuning) return false;
-    if (activeTab === 'beginner' && s.difficulty_num > 2) return false;
-    if (activeTab === 'learned' && !learned.includes(s.id)) return false;
-    if (activeTab === 'wishlist' && !wishlist.includes(s.id)) return false;
-    if (technique && !(s.techniques||'').split(',').map(t => t.trim()).includes(technique)) return false;
-    return true;
+function obChooseLevel(v){obState.level=v;obState.step=1;renderObStep()}
+function obToggleGenre(g){obState.genres=obState.genres.includes(g)?obState.genres.filter(x=>x!==g):[...obState.genres,g];renderObStep()}
+function obSkipGenre(){obState.step=2;renderObStep()}
+function obNext(){obState.step++;renderObStep()}
+function obRemoveLearned(id){obState.learnedIds=obState.learnedIds.filter(x=>x!==id);renderObStep()}
+function obSearchSolos(q){
+  clearTimeout(searchTimeout);
+  const res=document.getElementById('ob-results');
+  if(!q){res.style.display='none';return;}
+  searchTimeout=setTimeout(()=>{
+    const matches=allSolos.filter(s=>`${s.song_title} ${s.band} ${s.guitarist}`.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+    if(!matches.length){res.style.display='none';return;}
+    res.style.display='block';
+    res.innerHTML=matches.map(s=>`
+      <div class="solo-search-item ${obState.learnedIds.includes(s.id)?'selected':''}" onclick="obToggleLearned(${s.id})">
+        <span><strong style="font-size:13px;color:var(--text)">${s.song_title}</strong> <span style="font-size:12px;color:var(--text3)">· ${s.band}</span></span>
+        <span class="tag tag-diff-${s.difficulty_num}">${s.difficulty_label}</span>
+      </div>`).join('');
+  },200);
+}
+function obToggleLearned(id){
+  obState.learnedIds=obState.learnedIds.includes(id)?obState.learnedIds.filter(x=>x!==id):[...obState.learnedIds,id];
+  const el=document.getElementById('ob-results');
+  if(el)el.querySelectorAll('.solo-search-item').forEach(item=>{
+    const m=item.getAttribute('onclick').match(/\d+/);
+    if(m)item.classList.toggle('selected',obState.learnedIds.includes(parseInt(m[0])));
   });
-
-  if (activeTab === 'loved') filtered.sort((a, b) => b.upvotes - a.upvotes);
-  document.getElementById('solo-count').textContent = `${filtered.length} solo${filtered.length !== 1 ? 's' : ''}`;
-  renderGrid();
+  const sel=document.getElementById('ob-selected');
+  if(sel)sel.innerHTML=obState.learnedIds.map(id=>{const s=allSolos.find(x=>x.id===id);return s?`<div class="selected-tag">${s.song_title}<button onclick="obRemoveLearned(${id})">×</button></div>`:''}).join('');
+}
+function obFinish(){
+  learned=[...new Set([...learned,...obState.learnedIds])];
+  localStorage.setItem('sa_learned',JSON.stringify(learned));
+  userPrefs={level:obState.level||2,genres:obState.genres,learnedIds:obState.learnedIds,createdAt:Date.now()};
+  localStorage.setItem('sa_prefs',JSON.stringify(userPrefs));
+  document.getElementById('main-nav').style.display='grid';
+  showView('dashboard');
+  renderDashboard();
 }
 
-function setTab(el, tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  activeTab = tab;
-  applyFilters();
+function getRecommendations(){
+  const level=userPrefs?.level||2;
+  const genres=userPrefs?.genres||[];
+  const targetDiff=Math.min(level+1,5);
+  let candidates=allSolos.filter(s=>!learned.includes(s.id));
+  const scored=candidates.map(s=>{
+    let score=0;
+    const diffDelta=Math.abs(s.difficulty_num-targetDiff);
+    score+=Math.max(0,5-diffDelta)*20;
+    if(genres.includes(s.genre))score+=30;
+    score+=Math.min(s.upvotes,50);
+    if(s.difficulty_num===targetDiff)score+=15;
+    return{...s,_score:score};
+  });
+  scored.sort((a,b)=>b._score-a._score);
+  const recs=[];
+  const usedDiffs=new Set();
+  for(const s of scored){
+    if(recs.length>=3)break;
+    if(!usedDiffs.has(s.difficulty_num)||recs.length<2){recs.push(s);usedDiffs.add(s.difficulty_num);}
+  }
+  if(recs.length<3){for(const s of scored){if(recs.length>=3)break;if(!recs.find(r=>r.id===s.id))recs.push(s);}}
+  return recs.slice(0,3);
 }
 
-function diffClass(n) {
-  return `diff-${n}`;
+function recReason(s,idx){
+  const level=userPrefs?.level||2;
+  const genres=userPrefs?.genres||[];
+  if(idx===0&&s.difficulty_num<=level)return'Perfect for your current level — build confidence with this one first.';
+  if(idx===0)return'Solid next challenge — just one step above where you are now.';
+  if(genres.includes(s.genre))return`Right in your wheelhouse — ${s.genre} is your style.`;
+  if(s.difficulty_num===level)return'A satisfying challenge at exactly your level.';
+  return`Great for expanding your technique — ${(s.techniques||'').split(',')[0].trim()} work.`;
 }
 
-function diffLabel(n) {
-  return ['','Beginner','Easy','Intermediate','Hard','Expert'][n] || '';
-}
+  function renderDashboard(){
+  const level=userPrefs?.level||2;
+  const levelLabels=['','Beginner','Beginner','Intermediate','Advanced','Advanced'];
+  const recs=getRecommendations();
+  const recentlySorted=[...allSolos].sort((a,b)=>b.id-a.id).slice(0,4);
+  const learnedSolos=allSolos.filter(s=>learned.includes(s.id));
+  const wishlistSolos=allSolos.filter(s=>wishlist.includes(s.id));
+  const last=lastViewed?allSolos.find(s=>s.id===lastViewed):null;
 
-function renderGrid() {
-  const grid = document.getElementById('solo-grid');
-  if (!filtered.length) { grid.innerHTML = '<div class="empty">No solos found — try adjusting your filters</div>'; return; }
-  grid.innerHTML = filtered.map(s => `
-    <div class="card" onclick="showDetail(${s.id})">
-      <div class="card-top">
-        <div>
-          <div class="card-title">${s.song_title}</div>
-          <div class="card-sub">${s.band} · ${s.guitarist} · ${s.year}</div>
-        </div>
-        <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+  document.getElementById('dashboard').innerHTML=`
+    <div class="dash-hero">
+      <div class="dash-greeting">Your <span>guitar path</span></div>
+      <div class="dash-sub">Personalized to your ${levelLabels[level].toLowerCase()} level${userPrefs?.genres?.length?` · ${userPrefs.genres.slice(0,2).join(' & ')}`:''}
+        <span style="color:var(--text3);margin-left:12px;font-size:12px;cursor:pointer" onclick="resetPrefs()">Update preferences</span>
       </div>
-      <div class="tags">
-        ${s.genre ? `<span class="tag tag-genre">${s.genre}</span>` : ''}
-        ${s.subgenre ? `<span class="tag tag-genre" style="opacity:.7">${s.subgenre}</span>` : ''}
-        ${(s.techniques||'').split(',').map(t => t.trim()).filter(Boolean).map(t => `<span class="tag tag-tech" style="${t === activeTechnique ? 'background:#fff3cd;color:#856404;border:1px solid #ffc107' : ''}">${t}</span>`).join('')}
-      </div>
-      <div class="card-meta">
-        <span>${s.key || ''}</span>
-        <span>${s.guitar_type || ''}</span>
-        ${s.bpm ? `<span>${s.bpm} BPM</span>` : ''}
-        <span style="margin-left:auto">
-          <button class="upvote ${voted.includes(s.id)?'voted':''}" data-upvote="${s.id}" onclick="event.stopPropagation();upvote(${s.id})">▲ ${s.upvotes}</button>
-        </span>
+      <div class="stats-row">
+        <div class="stat-pill"><div class="dot"></div><strong>${learnedSolos.length}</strong> learned</div>
+        <div class="stat-pill"><div class="dot"></div><strong>${wishlistSolos.length}</strong> saved</div>
+        <div class="stat-pill"><div class="dot"></div><strong>${allSolos.length}</strong> solos in catalog</div>
+        ${learnedSolos.length?`<div class="stat-pill"><div class="dot"></div>Avg difficulty <strong>${(learnedSolos.reduce((a,s)=>a+s.difficulty_num,0)/learnedSolos.length).toFixed(1)}</strong></div>`:''}
       </div>
     </div>
-  `).join('');
+    <div class="dash-body">
+      <div class="dash-main">
+        ${last?`
+        <div style="margin-bottom:24px">
+          <div class="section-header"><div class="section-title">Continue where you left off</div></div>
+          <div class="continue-card" onclick="showDetail(${last.id})">
+            <div class="continue-icon">▶</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:500;color:var(--text)">${last.song_title}</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px">${last.guitarist} · ${last.band} · ${last.difficulty_label}</div>
+            </div>
+            <span class="tag tag-diff-${last.difficulty_num}">${last.difficulty_label}</span>
+          </div>
+        </div>`:''}
+        <div class="section-header">
+          <div class="section-title">Your next 3 solos</div>
+          <div class="section-link" onclick="showView('catalog')">Browse all →</div>
+        </div>
+        <div class="rec-cards">
+          ${recs.map((s,i)=>`
+            <div class="rec-card" onclick="showDetail(${s.id})">
+              <div class="rec-num">0${i+1}</div>
+              <div class="rec-body">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">
+                  <div class="rec-title">${s.song_title}</div>
+                  <span class="tag tag-diff-${s.difficulty_num}" style="margin-left:10px;flex-shrink:0">${s.difficulty_label}</span>
+                </div>
+                <div class="rec-meta">${s.band} · ${s.guitarist} · ${s.year}</div>
+                <div class="rec-reason">${recReason(s,i)}</div>
+                <div class="rec-tags">
+                  <span class="tag tag-genre">${s.genre}</span>
+                  ${(s.techniques||'').split(',').slice(0,2).map(t=>`<span class="tag tag-tech">${t.trim()}</span>`).join('')}
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+        ${learnedSolos.length?`
+        <div class="section-header" style="margin-top:8px">
+          <div class="section-title">My learned (${learnedSolos.length})</div>
+        </div>
+        <div class="sidebar-card" style="margin-bottom:24px">
+          ${learnedSolos.slice(0,5).map(s=>`
+            <div class="sidebar-solo-item" onclick="showDetail(${s.id})">
+              <div>
+                <div class="sidebar-solo-title">${s.song_title}</div>
+                <div class="sidebar-solo-meta">${s.guitarist} · ${s.difficulty_label}</div>
+              </div>
+              <span class="tag tag-diff-${s.difficulty_num}">${s.difficulty_label}</span>
+            </div>`).join('')}
+          ${learnedSolos.length>5?`<div style="font-size:12px;color:var(--text3);padding-top:10px;cursor:pointer" onclick="showView('catalog')">+${learnedSolos.length-5} more</div>`:''}
+        </div>`:''}
+      </div>
+      <div class="dash-sidebar">
+        ${wishlistSolos.length?`
+        <div class="sidebar-card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--text)">My wishlist (${wishlistSolos.length})</div>
+          ${wishlistSolos.slice(0,5).map(s=>`
+            <div class="sidebar-solo-item" onclick="showDetail(${s.id})">
+              <div>
+                <div class="sidebar-solo-title">${s.song_title}</div>
+                <div class="sidebar-solo-meta">${s.guitarist} · ${s.difficulty_label}</div>
+              </div>
+              <span class="tag tag-diff-${s.difficulty_num}">${s.difficulty_label}</span>
+            </div>`).join('')}
+        </div>`:''}
+        <div class="sidebar-card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--text)">Recently added</div>
+          ${recentlySorted.map(s=>`
+            <div class="sidebar-solo-item" onclick="showDetail(${s.id})">
+              <div>
+                <div class="sidebar-solo-title">${s.song_title}</div>
+                <div class="sidebar-solo-meta">${s.guitarist} · ${s.band}</div>
+              </div>
+              <span class="new-badge">New</span>
+            </div>`).join('')}
+        </div>
+        <div class="sidebar-card" style="background:var(--gold-bg);border-color:var(--gold-border)">
+          <div style="font-size:13px;font-weight:500;color:var(--gold);margin-bottom:6px">Explore the catalog</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5">${allSolos.length} solos across ${[...new Set(allSolos.map(s=>s.genre))].length} genres, filterable and sortable.</div>
+          <button onclick="showView('catalog')" style="width:100%;padding:9px;border:1px solid var(--gold-border);border-radius:var(--radius);background:transparent;color:var(--gold);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s" onmouseover="this.style.background='rgba(201,168,76,0.1)'" onmouseout="this.style.background='transparent'">Browse all solos →</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
-async function upvote(id) {
-  const solo = allSolos.find(s => s.id === id);
-  if (voted.includes(id)) {
-    voted = voted.filter(x => x !== id);
-    solo.upvotes--;
-  } else {
-    voted.push(id);
-    solo.upvotes++;
-  }
-  localStorage.setItem('voted', JSON.stringify(voted));
-  document.querySelectorAll(`[data-upvote="${id}"]`).forEach(btn => {
-    btn.classList.toggle('voted', voted.includes(id));
-    btn.innerHTML = `▲ ${solo.upvotes}`;
+function resetPrefs(){
+  userPrefs=null;
+  localStorage.removeItem('sa_prefs');
+  document.getElementById('main-nav').style.display='none';
+  showView('onboarding');
+  startOnboarding();
+}
+
+function populateCatalogFilters(){
+  const genres=[...new Set(allSolos.map(s=>s.genre).filter(Boolean))].sort();
+  const decades=[...new Set(allSolos.map(s=>s.decade).filter(Boolean))].sort();
+  const techniques=[...new Set(allSolos.flatMap(s=>(s.techniques||'').split(',').map(t=>t.trim())).filter(Boolean))].sort();
+  fillSelect('tf-genre',genres);
+  fillSelect('tf-decade',decades);
+  fillSelect('tf-technique',techniques);
+}
+
+function fillSelect(id,vals){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const first=el.options[0];
+  el.innerHTML='';
+  el.appendChild(first);
+  vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});
+}
+
+function filterTable(){
+  const q=(document.getElementById('table-search').value||'').toLowerCase();
+  const genre=document.getElementById('tf-genre').value;
+  const diff=document.getElementById('tf-difficulty').value;
+  const decade=document.getElementById('tf-decade').value;
+  const guitar=document.getElementById('tf-guitar').value;
+  const technique=document.getElementById('tf-technique').value;
+  activeTechnique=technique;
+  tableFiltered=allSolos.filter(s=>{
+    if(q&&!`${s.song_title} ${s.band} ${s.guitarist}`.toLowerCase().includes(q))return false;
+    if(genre&&s.genre!==genre)return false;
+    if(diff&&s.difficulty_num!==parseInt(diff))return false;
+    if(decade&&s.decade!==decade)return false;
+    if(guitar&&s.guitar_type!==guitar)return false;
+    if(technique&&!(s.techniques||'').split(',').map(t=>t.trim()).includes(technique))return false;
+    return true;
   });
-  await sb.from('solos').update({ upvotes: solo.upvotes }).eq('id', id);
+  sortTableData();
+  tableOffset=0;
+  renderTable();
 }
 
-async function showDetail(id, pushState = true) {
-  const s = allSolos.find(x => x.id === id);
-  if (!s) return;
-  const isLearned = learned.includes(id);
-  const isSaved = wishlist.includes(id);
-  const techs = (s.techniques || '').split(',').map(t => t.trim()).filter(Boolean);
-  const similar = allSolos.filter(x => x.id !== id && x.genre === s.genre).slice(0, 3);
-  const easier = allSolos.filter(x => x.id !== id && x.difficulty_num < s.difficulty_num).sort((a,b) => b.difficulty_num - a.difficulty_num).slice(0, 3);
+function sortTable(col){
+  if(tableSort.col===col)tableSort.dir=tableSort.dir==='asc'?'desc':'asc';
+  else{tableSort.col=col;tableSort.dir='asc';}
+  document.querySelectorAll('th').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
+  const cols=['song_title','band','guitarist','difficulty_num','genre','decade','bpm','techniques','links'];
+  const idx=cols.indexOf(col);
+  const ths=document.querySelectorAll('th');
+  if(idx>=0&&ths[idx])ths[idx].classList.add(tableSort.dir==='asc'?'sort-asc':'sort-desc');
+  sortTableData();
+  renderTable();
+}
 
-  document.getElementById('detail-view').innerHTML = `
-    <div class="detail-back" onclick="showView('list')">← Back to solos</div>
+function sortTableData(){
+  const{col,dir}=tableSort;
+  tableFiltered.sort((a,b)=>{
+    let av=a[col],bv=b[col];
+    if(typeof av==='string'){av=av?.toLowerCase()||'';bv=bv?.toLowerCase()||'';}
+    if(av<bv)return dir==='asc'?-1:1;
+    if(av>bv)return dir==='asc'?1:-1;
+    return 0;
+  });
+}
+
+function renderTable(){
+  const tbody=document.getElementById('table-body');
+  const slice=tableFiltered.slice(0,tableOffset+TABLE_PAGE);
+  document.getElementById('table-count').textContent=`${tableFiltered.length} solo${tableFiltered.length!==1?'s':''}`;
+  tbody.innerHTML=slice.map(s=>`
+    <tr onclick="showDetail(${s.id})">
+      <td><div class="td-title">${s.song_title}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${s.album||''} · ${s.year||''}</div></td>
+      <td>${s.band||'—'}</td>
+      <td><span style="cursor:pointer;color:var(--text2)" onclick="event.stopPropagation();showGuitarist('${s.guitarist}')">${s.guitarist||'—'}</span></td>
+      <td><span class="tbl-tag tbl-diff-${s.difficulty_num}">${s.difficulty_label||'—'}</span></td>
+      <td><span class="tbl-tag tbl-genre">${s.genre||'—'}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${s.decade||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${s.bpm||'—'}</td>
+      <td><div class="td-tags">${(s.techniques||'').split(',').slice(0,2).map(t=>`<span class="tbl-tag" style="background:var(--bg3);color:var(--text3);border:1px solid var(--border)">${t.trim()}</span>`).join('')}</div></td>
+      <td onclick="event.stopPropagation()"><div class="tbl-links">
+        ${s.url_full_song?`<button class="tbl-link" onclick="window.open('${s.url_full_song}','_blank')">▶ Watch</button>`:''}
+        ${s.url_tab?`<button class="tbl-link" onclick="window.open('${s.url_tab}','_blank')">Tab</button>`:''}
+      </div></td>
+    </tr>`).join('');
+  document.getElementById('load-more-btn').style.display=tableFiltered.length>tableOffset+TABLE_PAGE?'block':'none';
+}
+
+function loadMore(){tableOffset+=TABLE_PAGE;renderTable();}
+
+function showDetail(id,pushState=true){
+  const s=allSolos.find(x=>x.id===id);
+  if(!s)return;
+  currentDetail=id;
+  lastViewed=id;
+  localStorage.setItem('sa_last',JSON.stringify(id));
+  if(pushState)history.pushState({view:'detail',id},'',`#detail-${id}`);
+  const isLearned=learned.includes(id);
+  const isSaved=wishlist.includes(id);
+  const techs=(s.techniques||'').split(',').map(t=>t.trim()).filter(Boolean);
+  const easier=allSolos.filter(x=>x.id!==id&&x.difficulty_num<s.difficulty_num).sort((a,b)=>b.difficulty_num-a.difficulty_num).slice(0,3);
+  const similar=allSolos.filter(x=>x.id!==id&&x.genre===s.genre&&!learned.includes(x.id)).slice(0,3);
+  document.getElementById('detail-view').innerHTML=`
+    <div class="detail-back" onclick="goBack()">← Back</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
       <div>
         <div class="detail-title">${s.song_title}</div>
-        <div class="detail-sub">${s.album} · <span style="cursor:pointer;color:#666;text-decoration:underline" onclick="showGuitarist('${s.guitarist}')">${s.guitarist}</span> · ${s.band} · ${s.year}</div>
+        <div class="detail-sub">${s.album} · <span style="color:var(--gold);cursor:pointer" onclick="showGuitarist('${s.guitarist}')">${s.guitarist}</span> · ${s.band} · ${s.year}</div>
       </div>
-      <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+      <span class="tag tag-diff-${s.difficulty_num}" style="font-size:12px;padding:5px 12px;margin-top:4px">${s.difficulty_label}</span>
     </div>
-    <div class="action-row">
-      <button class="action-btn ${isLearned?'learned':''}" id="learn-btn" onclick="toggleLearned(${id})">
-        ${isLearned ? '✓ Learned' : '+ Mark as learned'}
-      </button>
-      <button class="action-btn ${isSaved?'saved':''}" id="save-btn" onclick="toggleSaved(${id})">
-        ${isSaved ? '★ Saved' : '☆ Save to wishlist'}
-      </button>
+    <div class="detail-action-row">
+      <button class="detail-action ${isLearned?'learned':''}" onclick="toggleLearned(${id})">${isLearned?'✓ Learned':'+ Mark as learned'}</button>
+      <button class="detail-action ${isSaved?'saved':''}" onclick="toggleSaved(${id})">${isSaved?'★ Saved':'☆ Wishlist'}</button>
       <button class="upvote ${voted.includes(id)?'voted':''}" data-upvote="${id}" onclick="upvote(${id})">▲ ${s.upvotes}</button>
     </div>
-    <div class="stats">
-      <div class="stat"><div class="stat-label">Key</div><div class="stat-val">${s.key||'—'}</div></div>
-      <div class="stat"><div class="stat-label">BPM</div><div class="stat-val">${s.bpm||'—'}</div></div>
-      <div class="stat"><div class="stat-label">Solo starts</div><div class="stat-val">${s.solo_start_time||'—'}</div></div>
-      <div class="stat"><div class="stat-label">Duration</div><div class="stat-val">${s.solo_duration||'—'}</div></div>
-      <div class="stat"><div class="stat-label">Tuning</div><div class="stat-val">${s.tuning||'—'}</div></div>
-      <div class="stat"><div class="stat-label">Capo</div><div class="stat-val">${s.capo||'None'}</div></div>
-      <div class="stat"><div class="stat-label">Guitar</div><div class="stat-val">${s.guitar_type||'—'}</div></div>
-      <div class="stat"><div class="stat-label">Scale</div><div class="stat-val">${s.scale_mode||'—'}</div></div>
+    <div class="detail-stats">
+      <div class="dstat"><div class="dstat-label">Key</div><div class="dstat-val">${s.key||'—'}</div></div>
+      <div class="dstat"><div class="dstat-label">BPM</div><div class="dstat-val">${s.bpm||'—'}</div></div>
+      <div class="dstat"><div class="dstat-label">Solo starts</div><div class="dstat-val">${s.solo_start_time||'—'}</div></div>
+      <div class="dstat"><div class="dstat-label">Duration</div><div class="dstat-val">${s.solo_duration||'—'}</div></div>
+      <div class="dstat"><div class="dstat-label">Tuning</div><div class="dstat-val">${s.tuning||'—'}</div></div>
+      <div class="dstat"><div class="dstat-label">Capo</div><div class="dstat-val">${s.capo||'None'}</div></div>
+      <div class="dstat"><div class="dstat-label">Guitar</div><div class="dstat-val">${s.guitar_type||'—'}</div></div>
+      <div class="dstat"><div class="dstat-label">Scale</div><div class="dstat-val">${s.scale_mode||'—'}</div></div>
     </div>
-    <div class="section">
-      <div class="section-label">Techniques</div>
-      <div class="tags">${techs.map(t=>`<span class="tag tag-tech">${t}</span>`).join('')}</div>
+    <div class="detail-section">
+      <div class="detail-section-label">Techniques</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${techs.map(t=>`<span class="tag tag-tech">${t}</span>`).join('')}</div>
     </div>
-    <div class="section">
-      <div class="section-label">Links</div>
-      ${s.url_full_song ? `<button class="link-btn" onclick="window.open('${s.url_full_song}','_blank')">▶ Full song on YouTube ${s.solo_start_time?'· starts at '+s.solo_start_time:''}</button>` : ''}
-      ${s.url_tab ? `<button class="link-btn" onclick="window.open('${s.url_tab}','_blank')">≡ Solo tab on Ultimate Guitar</button>` : ''}
-      ${s.url_instructional ? `<button class="link-btn" onclick="window.open('${s.url_instructional}','_blank')">? Instructional video</button>` : ''}
+    <div class="detail-section">
+      <div class="detail-section-label">Links</div>
+      ${s.url_full_song?`<button class="detail-link" onclick="window.open('${s.url_full_song}','_blank')">▶ Full song on YouTube${s.solo_start_time?' · starts at '+s.solo_start_time:''}</button>`:''}
+      ${s.url_tab?`<button class="detail-link" onclick="window.open('${s.url_tab}','_blank')">≡ Tab on Ultimate Guitar</button>`:''}
+      ${s.url_instructional?`<button class="detail-link" onclick="window.open('${s.url_instructional}','_blank')">? Instructional video</button>`:''}
     </div>
-    ${easier.length ? `
-    <div class="section">
-      <div class="section-label">This solo too hard? Work up to it</div>
-      ${easier.map((x,i) => `
-        <div class="path-step" onclick="showDetail(${x.id})" style="cursor:pointer">
+    ${easier.length?`
+    <div class="detail-section">
+      <div class="detail-section-label">Too hard? Work up to it</div>
+      ${easier.map((x,i)=>`
+        <div class="path-step" onclick="showDetail(${x.id})">
           <div class="step-num">${i+1}</div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500">${x.song_title}</div><div style="font-size:11px;color:#666">${x.guitarist} · ${x.difficulty_label}</div></div>
-          <span class="pill tag ${diffClass(x.difficulty_num)}">${x.difficulty_label}</span>
+          <div style="flex:1"><div class="path-step-title">${x.song_title}</div><div style="font-size:11px;color:var(--text3)">${x.guitarist} · ${x.difficulty_label}</div></div>
+          <span class="tag tag-diff-${x.difficulty_num}">${x.difficulty_label}</span>
         </div>`).join('')}
-    </div>` : ''}
-    ${similar.length ? `
-    <div class="section">
-      <div class="section-label">Learn next</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${similar.map(x=>`<div style="background:white;border:1px solid #e5e5e5;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer" onclick="showDetail(${x.id})">${x.song_title}</div>`).join('')}
-      </div>
-    </div>` : ''}
+    </div>`:''}
+    ${similar.length?`
+    <div class="detail-section">
+      <div class="detail-section-label">Learn next</div>
+      <div class="next-grid">${similar.map(x=>`<div class="next-item" onclick="showDetail(${x.id})">${x.song_title}</div>`).join('')}</div>
+    </div>`:''}
   `;
   showView('detail');
 }
 
-function toggleLearned(id) {
-  if (learned.includes(id)) learned = learned.filter(x => x !== id);
+function toggleLearned(id){
+  if(learned.includes(id))learned=learned.filter(x=>x!==id);
   else learned.push(id);
-  localStorage.setItem('learned', JSON.stringify(learned));
-  currentDetail = id;
-if (pushState) history.pushState({ view: 'detail', id: id }, '', `#detail-${id}`);
-  showDetail(id);
+  localStorage.setItem('sa_learned',JSON.stringify(learned));
+  showDetail(id,false);
 }
 
-function toggleSaved(id) {
-  if (wishlist.includes(id)) wishlist = wishlist.filter(x => x !== id);
+function toggleSaved(id){
+  if(wishlist.includes(id))wishlist=wishlist.filter(x=>x!==id);
   else wishlist.push(id);
-  localStorage.setItem('wishlist', JSON.stringify(wishlist));
-  showDetail(id);
+  localStorage.setItem('sa_wishlist',JSON.stringify(wishlist));
+  showDetail(id,false);
 }
 
-function renderGuitarists() {
-  const map = {};
-  allSolos.forEach(s => {
-    if (!s.guitarist) return;
-    if (!map[s.guitarist]) map[s.guitarist] = { name: s.guitarist, band: s.band, count: 0 };
+async function upvote(id){
+  const solo=allSolos.find(s=>s.id===id);
+  if(voted.includes(id)){voted=voted.filter(x=>x!==id);solo.upvotes--;}
+  else{voted.push(id);solo.upvotes++;}
+  localStorage.setItem('sa_voted',JSON.stringify(voted));
+  document.querySelectorAll(`[data-upvote="${id}"]`).forEach(btn=>{
+    btn.classList.toggle('voted',voted.includes(id));
+    btn.innerHTML=`▲ ${solo.upvotes}`;
+  });
+  await sb.from('solos').update({upvotes:solo.upvotes}).eq('id',id);
+}
+
+function renderGuitarists(){
+  const map={};
+  allSolos.forEach(s=>{
+    if(!s.guitarist)return;
+    if(!map[s.guitarist])map[s.guitarist]={name:s.guitarist,band:s.band,count:0};
     map[s.guitarist].count++;
   });
-  const list = Object.values(map).sort((a,b) => b.count - a.count);
-  document.getElementById('guitarists-view').innerHTML = `
-    <div style="font-size:20px;font-weight:600;margin-bottom:4px">Guitarists</div>
-    <div style="font-size:13px;color:#666;margin-bottom:16px">Browse solos by player</div>
-    <input class="search" type="text" placeholder="Search guitarists..." oninput="filterGuitarists(this.value)" id="guitarist-search">
-    <div id="guitarist-list">
-      ${list.map(g => `
-        <div class="guitarist-card" onclick="showGuitarist('${g.name}')">
-          <div class="avatar">${g.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:500">${g.name}</div>
-            <div style="font-size:12px;color:#666">${g.band}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:14px;font-weight:500">${g.count}</div>
-            <div style="font-size:11px;color:#666">solos</div>
-          </div>
-        </div>`).join('')}
-    </div>
-  `;
+  const list=Object.values(map).sort((a,b)=>b.count-a.count);
+  document.getElementById('guitarist-grid').innerHTML=list.map(g=>`
+    <div class="guitarist-card" onclick="showGuitarist('${g.name}')">
+      <div class="avatar">${g.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500">${g.name}</div>
+        <div style="font-size:12px;color:var(--text3)">${g.band}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:15px;font-weight:500">${g.count}</div>
+        <div style="font-size:11px;color:var(--text3)">solos</div>
+      </div>
+    </div>`).join('');
 }
 
-function filterGuitarists(q) {
-  document.querySelectorAll('.guitarist-card').forEach(el => {
-    el.style.display = el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+function filterGuitarists(q){
+  document.querySelectorAll('.guitarist-card').forEach(el=>{
+    el.style.display=el.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
   });
 }
 
-function showGuitarist(name) {
-  const solos = allSolos.filter(s => s.guitarist === name);
-  const g = solos[0];
-  const avgDiff = (solos.reduce((a,s) => a + s.difficulty_num, 0) / solos.length).toFixed(1);
-  const topTech = (() => {
-    const counts = {};
-    solos.forEach(s => (s.techniques||'').split(',').forEach(t => { t=t.trim(); counts[t]=(counts[t]||0)+1; }));
-    return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
-  })();
-  document.getElementById('guitarists-view').innerHTML = `
-    <div class="detail-back" onclick="renderGuitarists();showView('guitarists')">← Back to guitarists</div>
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <div class="avatar" style="width:52px;height:52px;font-size:16px">${name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+function showGuitarist(name){
+  const solos=allSolos.filter(s=>s.guitarist===name);
+  const g=solos[0];
+  const avgDiff=(solos.reduce((a,s)=>a+s.difficulty_num,0)/solos.length).toFixed(1);
+  const counts={};
+  solos.forEach(s=>(s.techniques||'').split(',').forEach(t=>{t=t.trim();counts[t]=(counts[t]||0)+1;}));
+  const topTech=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+  document.getElementById('guitarist-profile-view').innerHTML=`
+    <div class="detail-back" onclick="showView('guitarists')">← Back to guitarists</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div class="avatar" style="width:56px;height:56px;font-size:18px">${name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
       <div>
-        <div style="font-size:20px;font-weight:600">${name}</div>
-        <div style="font-size:13px;color:#666">${g?.band||''}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700">${name}</div>
+        <div style="font-size:13px;color:var(--text3)">${g?.band||''}</div>
       </div>
     </div>
-    <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-      <div class="stat"><div class="stat-label">Solos</div><div class="stat-val">${solos.length}</div></div>
-      <div class="stat"><div class="stat-label">Avg difficulty</div><div class="stat-val">${avgDiff} / 5</div></div>
-      <div class="stat"><div class="stat-label">Top technique</div><div class="stat-val">${topTech}</div></div>
+    <div class="detail-stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+      <div class="dstat"><div class="dstat-label">Solos</div><div class="dstat-val">${solos.length}</div></div>
+      <div class="dstat"><div class="dstat-label">Avg difficulty</div><div class="dstat-val">${avgDiff}/5</div></div>
+      <div class="dstat"><div class="dstat-label">Top technique</div><div class="dstat-val" style="font-size:11px;font-family:'DM Sans',sans-serif">${topTech}</div></div>
     </div>
-    <div style="font-size:13px;font-weight:500;margin-bottom:10px">All solos</div>
-    ${solos.map(s => `
-      <div class="card" style="margin-bottom:8px" onclick="showDetail(${s.id})">
-        <div class="card-top">
+    <div style="font-size:14px;font-weight:500;margin-bottom:12px">All solos</div>
+    ${solos.map(s=>`
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .2s" onclick="showDetail(${s.id})" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="font-size:14px;font-weight:500">${s.song_title}</div>
-          <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
+          <span class="tag tag-diff-${s.difficulty_num}">${s.difficulty_label}</span>
         </div>
-        <div style="font-size:12px;color:#666;margin-top:3px">${s.album} · ${s.year} · ${s.key} · ${s.guitar_type}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">${s.album} · ${s.year} · ${s.key} · ${s.guitar_type}</div>
       </div>`).join('')}
   `;
-  showView('guitarists');
+  showView('guitarist-profile');
 }
 
-function showView(v, pushState = true) {
-  ['list','detail','guitarists','path'].forEach(id => {
-    document.getElementById(id+'-view').style.display = id === v ? 'block' : 'none';
+function showView(v,pushState=true){
+  const views=['onboarding','dashboard','catalog','detail','guitarists','guitarist-profile'];
+  views.forEach(id=>{
+    const el=document.getElementById(id+'-view');
+    if(el)el.classList.toggle('active',id===v);
   });
-  if (v === 'list') applyFilters();
-  if (v === 'path') initPath();
-if (pushState && v !== 'detail') history.pushState({ view: v }, '', `#${v}`);
+  document.querySelectorAll('.nav-link').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-link-sm').forEach(el=>el.classList.remove('active'));
+  const navMap={dashboard:'nav-path',catalog:'nav-catalog',guitarists:'nav-guitarists'};
+  if(navMap[v])document.getElementById(navMap[v])?.classList.add('active');
+  if(v==='catalog'){filterTable();}
+  if(v==='guitarists'){renderGuitarists();}
+  if(v==='dashboard'&&userPrefs){renderDashboard();}
+  if(pushState&&v!=='detail')history.pushState({view:v},'',`#${v}`);
   window.scrollTo(0,0);
 }
 
-  window.addEventListener('popstate', (e) => {
-  const view = e.state?.view || 'list';
-  if (view === 'detail' && e.state?.id) {
-    showDetail(e.state.id, false);
-  } else {
-    showView(view, false);
-  }
+function goBack(){
+  if(history.length>1)history.back();
+  else showView(userPrefs?'dashboard':'onboarding');
+}
+
+window.addEventListener('popstate',(e)=>{
+  const view=e.state?.view||'dashboard';
+  if(view==='detail'&&e.state?.id)showDetail(e.state.id,false);
+  else showView(view,false);
 });
 
-const initialView = location.hash.replace('#','') || 'list';
-if (['list','detail','guitarists','path'].includes(initialView)) {
-  showView(initialView, false);
-}
-  
 init();
-  const pathState = { step: 0, level: null, goal: null, genre: null };
-
-function initPath() {
-  pathState.step = 0;
-  pathState.level = null;
-  pathState.goal = null;
-  pathState.genre = null;
-  document.getElementById('path-results').style.display = 'none';
-  renderPathStep();
-}
-
-function renderPathStep() {
-  const q = document.getElementById('path-questions');
-  const steps = [
-    {
-      question: "What's your current level?",
-      subtitle: "Be honest — the path only works if we start in the right place",
-      choices: [
-        { label: "Complete beginner — I can barely hold the thing", value: 1 },
-        { label: "Beginner — I know a few chords and simple riffs", value: 2 },
-        { label: "Intermediate — I can play some solos but struggle with speed", value: 3 },
-        { label: "Advanced — I want to level up specific techniques", value: 4 }
-      ],
-      key: 'level'
-    },
-    {
-      question: "What genre do you love most?",
-      subtitle: "We'll prioritize solos in this style",
-      choices: [
-        { label: "Rock", value: "Rock" },
-        { label: "Blues", value: "Blues" },
-        { label: "Metal", value: "Metal" },
-        { label: "Jazz", value: "Jazz" },
-        { label: "Country", value: "Country" },
-        { label: "Any genre", value: null }
-      ],
-      key: 'genre'
-    },
-    {
-      question: "Do you have a goal solo in mind?",
-      subtitle: "Pick one you really want to nail — we'll build toward it",
-      choices: [
-        ...allSolos.filter(s => s.difficulty_num >= 3).slice(0, 6).map(s => ({ label: `${s.song_title} — ${s.band}`, value: s.id })),
-        { label: "No specific goal — just show me a good path", value: null }
-      ],
-      key: 'goal'
-    }
-  ];
-
-  if (pathState.step >= steps.length) {
-    buildPath();
-    return;
-  }
-
-  const current = steps[pathState.step];
-  q.innerHTML = `
-    <div style="margin-bottom:20px">
-      <div style="font-size:16px;font-weight:500;margin-bottom:4px">${current.question}</div>
-      <div style="font-size:13px;color:#666;margin-bottom:16px">${current.subtitle}</div>
-      <div style="display:grid;gap:8px">
-        ${current.choices.map(c => `
-          <button onclick="pathChoose('${current.key}', ${JSON.stringify(c.value)})"
-            style="text-align:left;padding:12px 16px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer;transition:all .15s"
-            onmouseover="this.style.borderColor='#aaa'" onmouseout="this.style.borderColor='#e5e5e5'">
-            ${c.label}
-          </button>`).join('')}
-      </div>
-    </div>
-    <div style="font-size:12px;color:#ccc">Step ${pathState.step + 1} of ${steps.length}</div>
-  `;
-}
-
-function pathChoose(key, value) {
-  pathState[key] = value;
-  pathState.step++;
-  renderPathStep();
-}
-
-function buildPath() {
-  const q = document.getElementById('path-questions');
-  const results = document.getElementById('path-results');
-  q.innerHTML = '';
-
-  const userLevel = pathState.level || 2;
-  const userGenre = pathState.genre;
-  const goalId = pathState.goal;
-
-  let goalSolo = goalId ? allSolos.find(s => s.id === goalId) : null;
-
-  let candidates = allSolos.filter(s => {
-    if (goalSolo && s.id === goalSolo.id) return false;
-    if (s.difficulty_num > (goalSolo ? goalSolo.difficulty_num : userLevel + 2)) return false;
-    return true;
-  });
-
-  if (userGenre) candidates.sort((a, b) => {
-    const aMatch = a.genre === userGenre ? 0 : 1;
-    const bMatch = b.genre === userGenre ? 0 : 1;
-    return aMatch - bMatch || a.difficulty_num - b.difficulty_num;
-  });
-  else candidates.sort((a, b) => a.difficulty_num - b.difficulty_num);
-
-  const startLevel = Math.max(1, userLevel - 1);
-  const path = [];
-  const used = new Set();
-
-  for (let level = startLevel; level <= (goalSolo ? goalSolo.difficulty_num - 1 : userLevel + 2); level++) {
-    const match = candidates.find(s => s.difficulty_num === level && !used.has(s.id));
-    if (match) { path.push(match); used.add(match.id); }
-  }
-
-  if (path.length === 0) {
-    const fallback = candidates.filter(s => !used.has(s.id)).slice(0, 3);
-    fallback.forEach(s => { path.push(s); used.add(s.id); });
-  }
-
-  if (goalSolo) path.push(goalSolo);
-  if (path.length === 0) {
-  results.style.display = 'block';
-  results.innerHTML = `
-    <div style="background:#f5f5f5;border-radius:12px;padding:20px;text-align:center">
-      <div style="font-size:15px;font-weight:500;margin-bottom:8px">No path found</div>
-      <div style="font-size:13px;color:#666;margin-bottom:16px">We don't have enough solos in that style yet to build a path. Try a different genre or goal solo.</div>
-      <button onclick="initPath()" style="padding:10px 20px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer">Try again</button>
-    </div>
-  `;
-  q.innerHTML = '';
-  return;
-}
-
-  const genreLabel = userGenre || 'your chosen genre';
-  const levelLabels = ['', 'beginner', 'beginner', 'intermediate', 'advanced'];
-
-  results.style.display = 'block';
-  results.innerHTML = `
-    <div style="background:#f5f5f5;border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="font-size:13px;color:#666;margin-bottom:12px">
-        Based on your <strong>${levelLabels[userLevel] || 'current'}</strong> level and love of <strong>${genreLabel}</strong>${goalSolo ? `, here's your path to <strong>${goalSolo.song_title}</strong>` : ', here is your recommended learning path'}.
-      </div>
-      <div id="path-steps">
-        ${path.map((s, i) => `
-          <div class="path-step" onclick="showDetail(${s.id})" style="cursor:pointer">
-            <div class="step-num" style="${i === path.length - 1 && goalSolo ? 'background:#eeedfe;border-color:#afa9ec;color:#3c3489' : ''}">${i + 1}</div>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:500">${s.song_title}</div>
-              <div style="font-size:11px;color:#666">${s.guitarist} · ${s.difficulty_label} · ${(s.techniques||'').split(',').slice(0,2).join(', ')}</div>
-            </div>
-            <span class="pill tag ${diffClass(s.difficulty_num)}">${s.difficulty_label}</span>
-          </div>`).join('')}
-      </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button onclick="initPath()" style="flex:1;padding:10px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer">Start over</button>
-      <button onclick="showView('list')" style="flex:1;padding:10px;border:1px solid #e5e5e5;border-radius:8px;background:white;font-size:13px;cursor:pointer">Browse all solos</button>
-    </div>
-  `;
-}
 </script>
 </body>
 </html>

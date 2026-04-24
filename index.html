@@ -369,7 +369,11 @@ function nextStep(){
     userPrefs={level:answers.level?.split(' — ')[0]||'Intermediate',genres:answers.genres||[],practice:answers.practice||'30 minutes',name:'Marcus'};
     localStorage.setItem('soloatlas_prefs',JSON.stringify(userPrefs));
     document.getElementById('main-nav').style.display='grid';
-    showView('dashboard');
+    document.getElementById('nav-avatar').textContent=(userPrefs.name||'M')[0].toUpperCase();
+    document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+    document.getElementById('dashboard-view').classList.add('active');
+    window.scrollTo(0,0);
+    renderDashboard();
   }
 }
 

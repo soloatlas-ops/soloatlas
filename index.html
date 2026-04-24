@@ -348,7 +348,7 @@ function renderOnboarding(){
     <div class="onboard-q">${st.q}</div>
     <div class="onboard-sub">${st.sub}</div>
     <div class="onboard-opts" id="onboard-opts">${optsHTML}</div>
-    <button class="onboard-next" id="onboard-next-btn" onclick="nextStep()" ${!answers[st.key]||(st.multi&&!answers[st.key].length)?'disabled':''}>
+    <button class="onboard-next" id="onboard-next-btn" onclick="nextStep()" ${!answers[st.key]?'disabled':''}>
       ${stepIdx<steps.length-1?'Continue →':'Start my path'}
     </button>`;
   document.getElementById('onboard-opts').querySelectorAll('button').forEach((btn,oi)=>{

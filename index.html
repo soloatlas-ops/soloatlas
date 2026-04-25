@@ -416,7 +416,7 @@ function populateCatalogFilters(){
 }
 
 function renderDashboard(){
-  if(!userPrefs||!allSolos.length)return;
+  if(!userPrefs || !allSolos.length) return;
   const name=userPrefs.name||'Marcus';
   const learned=parseInt(localStorage.getItem('soloatlas_learned')||'12');
   const saved=parseInt(localStorage.getItem('soloatlas_saved')||'7');
@@ -439,7 +439,7 @@ function renderDashboard(){
     const p=s._pair;
     const initials=(s.guitarist||'?').split(' ').map(w=>w[0]).join('').slice(0,2);
     const tagColor=DIFF_COLORS[s.difficulty_label]||DIFF_COLORS[s.difficulty_num]||'#c9464a';
-    return `<div class="solo-card" onclick="showDetail(${s.id})">
+    return `<div class="solo-card" onclick="showDetail('${s.id}')">
       <div class="card-art" style="background:${p.bg}">
         <div class="card-art-stripe" style="background-image:repeating-linear-gradient(${45+i*30}deg,${p.ac}22 0 4px,transparent 4px 16px)"></div>
         <div class="card-art-letter" style="color:${p.ac}">${(s.song_title||'?')[0]}</div>
@@ -595,9 +595,10 @@ function renderCatalogTable(){
 
 function loadMoreCatalog(){visibleCount+=18;renderCatalogTable();}
 
-function showDetail(id){
-  const s=allSolos.find(x=>x.id===id);
-  if(!s)return;
+function showDetail(id, pushState=true){
+  id = Number(id);
+  const s = allSolos.find(x => Number(x.id) === id);
+  if(!s) return;
   const p=s._pair;
   const dc=DIFF_COLORS[s.difficulty_label]||'#c9464a';
   const techs=(s.techniques||[]).map(t=>`<span class="tech-tag" style="font-size:12px;padding:4px 12px">${t}</span>`).join('');

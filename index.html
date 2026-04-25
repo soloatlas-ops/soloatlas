@@ -396,6 +396,7 @@ async function loadSolos(){
   const{data,error}=await sb.from('solos').select('*').order('song_title');
   if(error){console.error(error);return;}
   allSolos=(data||[]).map((s,i)=>({...s,_pair:BG_ACCENT_PAIRS[i%BG_ACCENT_PAIRS.length]}));
+  console.log('[loadSolos] loaded', allSolos.length, 'solos, first id:', allSolos[0]?.id);
   filteredSolos=[...allSolos];
   document.getElementById('catalog-total-count').textContent=allSolos.length;
   populateCatalogFilters();
@@ -417,6 +418,7 @@ function populateCatalogFilters(){
 
 function renderDashboard(){
   if(!userPrefs || !allSolos.length) return;
+  console.log('[renderDashboard] fired, solos:', allSolos.length, 'recs ids:', allSolos.slice(0,3).map(s=>s.id));
   const name=userPrefs.name||'Marcus';
   const learned=parseInt(localStorage.getItem('soloatlas_learned')||'12');
   const saved=parseInt(localStorage.getItem('soloatlas_saved')||'7');

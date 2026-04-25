@@ -394,7 +394,12 @@ function nextStep(){
 }
 
 async function loadSolos(){
+  console.log('[loadSolos] querying Supabase…');
+  const timeout=setTimeout(()=>{
+    document.getElementById('dashboard').innerHTML=`<div style="padding:80px 48px;font-family:'Libre Caslon Text',serif;color:var(--accent)">Supabase is not responding (10s timeout). Check the console for errors.</div>`;
+  },10000);
   const{data,error}=await sb.from('solos').select('*').order('song_title');
+  clearTimeout(timeout);
   if(error){
     console.error('[loadSolos] Supabase error:', error);
     document.getElementById('dashboard').innerHTML=`<div style="padding:80px 48px;font-family:'Libre Caslon Text',serif;color:var(--accent)">Failed to load solos: ${error.message||JSON.stringify(error)}</div>`;

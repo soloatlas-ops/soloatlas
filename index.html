@@ -405,7 +405,8 @@ async function loadSolos(){
     document.getElementById('dashboard').innerHTML=`<div style="padding:80px 48px;font-family:'Libre Caslon Text',serif;color:var(--accent)">Failed to load solos: ${error.message||JSON.stringify(error)}</div>`;
     return;
   }
-  allSolos=(data||[]).map((s,i)=>({...s,_pair:BG_ACCENT_PAIRS[i%BG_ACCENT_PAIRS.length]}));
+  const normTechs=t=>Array.isArray(t)?t:typeof t==='string'&&t?t.startsWith('[')?JSON.parse(t):t.split(',').map(x=>x.trim()).filter(Boolean):[];
+  allSolos=(data||[]).map((s,i)=>({...s,_pair:BG_ACCENT_PAIRS[i%BG_ACCENT_PAIRS.length],techniques:normTechs(s.techniques)}));
   console.log('[loadSolos] loaded', allSolos.length, 'solos, first id:', allSolos[0]?.id);
   filteredSolos=[...allSolos];
   document.getElementById('catalog-total-count').textContent=allSolos.length;

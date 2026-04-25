@@ -190,7 +190,7 @@
 
 <!-- MY PATH / DASHBOARD -->
 <div id="dashboard-view" class="view">
-  <div id="dashboard"></div>
+  <div id="dashboard"><div id="dashboard-loading" style="padding:80px 48px;font-family:'Libre Caslon Text',serif;color:var(--text3);font-style:italic">Loading your path…</div></div>
 </div>
 
 <!-- CATALOG -->
@@ -395,7 +395,11 @@ function nextStep(){
 
 async function loadSolos(){
   const{data,error}=await sb.from('solos').select('*').order('song_title');
-  if(error){console.error(error);return;}
+  if(error){
+    console.error('[loadSolos] Supabase error:', error);
+    document.getElementById('dashboard').innerHTML=`<div style="padding:80px 48px;font-family:'Libre Caslon Text',serif;color:var(--accent)">Failed to load solos: ${error.message||JSON.stringify(error)}</div>`;
+    return;
+  }
   allSolos=(data||[]).map((s,i)=>({...s,_pair:BG_ACCENT_PAIRS[i%BG_ACCENT_PAIRS.length]}));
   console.log('[loadSolos] loaded', allSolos.length, 'solos, first id:', allSolos[0]?.id);
   filteredSolos=[...allSolos];

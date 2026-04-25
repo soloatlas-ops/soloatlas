@@ -312,6 +312,7 @@
   <script>
 const SUPA_URL = 'https://ybmhnhlkebbklexcuqna.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibWhuaGxrZWJia2xleGN1cW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjUyOTAsImV4cCI6MjA5MjU0MTI5MH0.pEZDLIoMHMr_5ngzQ0oZDHHMdUZatULUuB1bZVyvpCA';
+console.log('[init] script start, supabase defined:', typeof supabase !== 'undefined');
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 const DIFF_COLORS = {
@@ -723,9 +724,13 @@ window.addEventListener('popstate',e=>{
 });
 
 async function init(){
+  console.log('[init] called, localStorage prefs:', localStorage.getItem('soloatlas_prefs')?.slice(0,40));
   const saved=localStorage.getItem('soloatlas_prefs');
   if(saved){
-    userPrefs=JSON.parse(saved);
+    try{ userPrefs=JSON.parse(saved); }
+    catch(e){ console.error('[init] corrupt prefs, clearing:', e); localStorage.removeItem('soloatlas_prefs'); }
+  }
+  if(userPrefs){
     document.getElementById('main-nav').style.display='grid';
     document.getElementById('nav-avatar').textContent=(userPrefs.name||'M')[0].toUpperCase();
     const hash=location.hash.replace('#','');

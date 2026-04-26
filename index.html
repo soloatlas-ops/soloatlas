@@ -161,6 +161,17 @@
     #guitarist-profile-view.active{display:block}
     #guitarist-profile-view{padding:40px 48px 80px}
     .cover-art{border-radius:2px;flex-shrink:0;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+    .nav-avatar{cursor:pointer;user-select:none}
+    .avatar-wrap{position:relative}
+    .avatar-menu{display:none;position:absolute;right:0;top:44px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;min-width:200px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .avatar-menu.open{display:block}
+    .avatar-menu-name{padding:12px 16px;font-family:'Libre Caslon Text',serif;font-size:12px;color:var(--text3);letter-spacing:0.05em;border-bottom:1px solid var(--border2)}
+    .avatar-menu-btn{display:block;width:100%;padding:12px 16px;background:none;border:none;color:var(--text2);font-family:'Libre Caslon Text',serif;font-size:13px;text-align:left;cursor:pointer;letter-spacing:0.05em;transition:color .15s}
+    .avatar-menu-btn:hover{color:var(--text)}
+    .detail-action-btn{flex:1;padding:12px;background:transparent;border:1px solid var(--border2);color:var(--text3);font-family:'Libre Caslon Text',serif;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
+    .detail-action-btn:hover{border-color:var(--text2);color:var(--text2)}
+    .detail-action-btn.active-learned{border-color:var(--green)!important;color:var(--green)!important}
+    .detail-action-btn.active-saved{border-color:var(--gold)!important;color:var(--gold)!important}
   </style>
 </head>
 <body>
@@ -173,7 +184,13 @@
     <span class="nav-link" id="nav-guitarists" onclick="showView('guitarists')">Guitarists</span>
   </div>
   <div class="nav-right">
-    <div class="nav-avatar" id="nav-avatar">M</div>
+    <div class="avatar-wrap" id="avatar-wrap">
+      <div class="nav-avatar" id="nav-avatar" onclick="toggleAvatarMenu()">M</div>
+      <div class="avatar-menu" id="avatar-menu">
+        <div class="avatar-menu-name" id="avatar-menu-name"></div>
+        <button class="avatar-menu-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -327,7 +344,7 @@ const BG_ACCENT_PAIRS = [
 ];
 
 let allSolos=[], filteredSolos=[], sortCol='song_title', sortDir='asc', visibleCount=18;
-let userPrefs=null;
+let userPrefs=null, currentUser=null, userStats={learned:0,saved:0};
 
 const steps=[
   {q:"What's your name?",sub:'We\'ll personalize your path.',opts:null,key:'name',text:true},
@@ -383,9 +400,12 @@ function nextStep(){
   if(stepIdx<steps.length-1){stepIdx++;renderOnboarding();}
   else{
     userPrefs={level:answers.level?.split(' — ')[0]||'Intermediate',genres:answers.genres||[],name:answers.name||'Friend'};
-    localStorage.setItem('soloatlas_prefs',JSON.stringify(userPrefs));
+    if(currentUser){
+      sb.from('users_profile').upsert({user_id:currentUser.id,name:userPrefs.name,level:userPrefs.level,genres:userPrefs.genres},{onConflict:'user_id'})
+        .then(({error})=>{if(error)console.error('[saveProfile]',error);});
+    }
     document.getElementById('main-nav').style.display='grid';
-    document.getElementById('nav-avatar').textContent=(userPrefs.name||'F')[0].toUpperCase();
+    updateNavAvatar();
     document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
     document.getElementById('dashboard-view').classList.add('active');
     window.scrollTo(0,0);
@@ -431,8 +451,8 @@ function renderDashboard(){
   if(!userPrefs || !allSolos.length) return;
   console.log('[renderDashboard] fired, solos:', allSolos.length, 'recs ids:', allSolos.slice(0,3).map(s=>s.id));
   const name=userPrefs.name||'Marcus';
-  const learned=parseInt(localStorage.getItem('soloatlas_learned')||'12');
-  const saved=parseInt(localStorage.getItem('soloatlas_saved')||'7');
+  const learned=userStats.learned;
+  const saved=userStats.saved;
   const level=userPrefs.level||'Intermediate';
   const levelFrac={Beginner:0.1,Easy:0.3,Intermediate:0.52,Hard:0.72,Expert:0.92}[level]||0.52;
   const cx=100,cy=100,r=78;
@@ -608,7 +628,7 @@ function renderCatalogTable(){
 
 function loadMoreCatalog(){visibleCount+=18;renderCatalogTable();}
 
-function showDetail(id, pushState=true){
+async function showDetail(id, pushState=true){
   id = Number(id);
   const s = allSolos.find(x => Number(x.id) === id);
   if(!s) return;
@@ -645,8 +665,16 @@ function showDetail(id, pushState=true){
           <div style="display:flex;gap:6px;flex-wrap:wrap">${techs}</div>
         </div>
         ${s.notes?`<div style="margin-top:24px;padding-top:24px;border-top:1px dotted var(--border2);font-size:15px;color:var(--text2);font-style:italic;line-height:1.6">${s.notes}</div>`:''}
+        <div id="detail-actions" style="margin-top:28px;padding-top:24px;border-top:1px dotted var(--border2);display:flex;gap:12px"></div>
       </div>
     </div>`;
+  if(currentUser){
+    const {data:statusRow}=await sb.from('users_solos').select('status').eq('user_id',currentUser.id).eq('solo_id',id).maybeSingle();
+    const st=statusRow?.status||null;
+    document.getElementById('detail-actions').innerHTML=`
+      <button id="detail-btn-learned" class="detail-action-btn${st==='learned'?' active-learned':''}" onclick="markSolo(${id},'learned')">${st==='learned'?'Learned ✓':'Mark as Learned'}</button>
+      <button id="detail-btn-saved" class="detail-action-btn${st==='saved'?' active-saved':''}" onclick="markSolo(${id},'saved')">${st==='saved'?'Saved ✓':'Save'}</button>`;
+  }
   history.pushState({view:'detail',id},'',`#detail-${id}`);
   showView('detail',false);
 }
@@ -727,28 +755,106 @@ function goBack(){
   else showView(userPrefs?'dashboard':'onboarding');
 }
 
+document.addEventListener('click',e=>{
+  if(!document.getElementById('avatar-wrap')?.contains(e.target))
+    document.getElementById('avatar-menu')?.classList.remove('open');
+});
+
 window.addEventListener('popstate',e=>{
   const view=e.state?.view||'dashboard';
   if(view==='detail'&&e.state?.id)showDetail(e.state.id,false);
   else showView(view,false);
 });
 
-async function init(){
-  console.log('[init] called, localStorage prefs:', localStorage.getItem('soloatlas_prefs')?.slice(0,40));
-  const saved=localStorage.getItem('soloatlas_prefs');
-  if(saved){
-    try{ userPrefs=JSON.parse(saved); }
-    catch(e){ console.error('[init] corrupt prefs, clearing:', e); localStorage.removeItem('soloatlas_prefs'); }
+function showLogin(){
+  document.getElementById('main-nav').style.display='none';
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('onboarding-view').classList.add('active');
+  document.getElementById('onboard-prog').innerHTML='';
+  document.getElementById('onboard-step-content').innerHTML=`
+    <div style="text-align:center;padding:8px 0">
+      <div class="onboard-q" style="margin-bottom:12px">Welcome to SoloAtlas.</div>
+      <div class="onboard-sub" style="margin-bottom:40px">Your personal guide through the guitar solo canon.</div>
+      <button onclick="sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}})" style="display:inline-flex;align-items:center;gap:12px;padding:14px 24px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Libre Caslon Text',serif;font-size:14px;cursor:pointer;letter-spacing:0.05em;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+    </div>`;
+}
+
+async function onSignIn(session){
+  currentUser=session.user;
+  // Migrate from localStorage
+  const legacy=localStorage.getItem('soloatlas_prefs');
+  if(legacy){
+    try{
+      const p=JSON.parse(legacy);
+      await sb.from('users_profile').upsert({user_id:currentUser.id,name:p.name,level:p.level,genres:p.genres},{onConflict:'user_id'});
+      localStorage.removeItem('soloatlas_prefs');
+    }catch(e){console.warn('[migration]',e);}
   }
-  if(userPrefs){
+  const {data:profile}=await sb.from('users_profile').select('*').eq('user_id',currentUser.id).maybeSingle();
+  if(profile){
+    userPrefs={name:profile.name,level:profile.level,genres:profile.genres||[]};
+    await loadUserStats();
     document.getElementById('main-nav').style.display='grid';
-    document.getElementById('nav-avatar').textContent=(userPrefs.name||'M')[0].toUpperCase();
+    updateNavAvatar();
     const hash=location.hash.replace('#','');
     if(hash&&hash!=='onboarding')showView(hash);
     else showView('dashboard');
   } else {
+    document.getElementById('main-nav').style.display='none';
+    stepIdx=0; answers={};
+    document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+    document.getElementById('onboarding-view').classList.add('active');
     renderOnboarding();
   }
+}
+
+async function loadUserStats(){
+  if(!currentUser)return;
+  const {data}=await sb.from('users_solos').select('status').eq('user_id',currentUser.id);
+  userStats.learned=(data||[]).filter(r=>r.status==='learned').length;
+  userStats.saved=(data||[]).filter(r=>r.status==='saved').length;
+}
+
+async function markSolo(soloId,status){
+  if(!currentUser)return;
+  const {error}=await sb.from('users_solos').upsert({user_id:currentUser.id,solo_id:soloId,status},{onConflict:'user_id,solo_id'});
+  if(error){console.error('[markSolo]',error);return;}
+  await loadUserStats();
+  renderDashboard();
+  const bl=document.getElementById('detail-btn-learned');
+  const bs=document.getElementById('detail-btn-saved');
+  if(bl){bl.textContent=status==='learned'?'Learned ✓':'Mark as Learned';bl.className='detail-action-btn'+(status==='learned'?' active-learned':'');}
+  if(bs){bs.textContent=status==='saved'?'Saved ✓':'Save';bs.className='detail-action-btn'+(status==='saved'?' active-saved':'');}
+}
+
+function updateNavAvatar(){
+  const name=userPrefs?.name||currentUser?.user_metadata?.full_name||'U';
+  document.getElementById('nav-avatar').textContent=name[0].toUpperCase();
+  const el=document.getElementById('avatar-menu-name');
+  if(el)el.textContent=userPrefs?.name||currentUser?.user_metadata?.full_name||'';
+}
+
+function toggleAvatarMenu(){
+  document.getElementById('avatar-menu')?.classList.toggle('open');
+}
+
+async function signOut(){
+  document.getElementById('avatar-menu')?.classList.remove('open');
+  currentUser=null; userPrefs=null; userStats={learned:0,saved:0};
+  await sb.auth.signOut();
+  showLogin();
+}
+
+async function init(){
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'){currentUser=null;userPrefs=null;userStats={learned:0,saved:0};showLogin();}
+  });
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await onSignIn(session);
+  else showLogin();
   await loadSolos();
   if(userPrefs)renderDashboard();
 }
